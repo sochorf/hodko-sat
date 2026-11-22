@@ -1,8 +1,10 @@
 # Publication preparation — Hodko SAT 5.0.0.2
 
-Prepared on 23 November 2026. **Offline repair only. No publication, installation,
-restart or live control change is authorized by this document.** User commits the
-code. `publication_ready=false` remains the technical publication guard.
+Prepared on 23 November 2026. The user committed the repair at
+`44f1289f9f39949739784df7d1457966ad47c5df` and requested continuation with
+publication. `publication_ready=true` records completed technical review;
+this document itself never authorizes installation, restart or live control.
+The publication commit changes only readiness metadata and documentation.
 
 ## Scope and rollback
 
@@ -37,8 +39,10 @@ HA2026.11.2, one expected duplicate-source skip, no failures/errors. This includ
 all 18 Marketplace cases and four cold-process starts. Historical HA2026.10.2:
 **1,479 tests +53 subtests passed**, one expected duplicate-source skip, no
 failures/errors. Local integrity checks pass, including all 161 component files
-and 73 test files. No hosted CI is claimed for .2. The first local full run
-exposed empty untracked directories left from the old checkout in a Git-handoff
+and 73 test files. Hosted branch CI [45083059109](https://github.com/sochorf/hodko-sat/actions/runs/45083059109)
+passed both profiles on 44f1289. Its public source archive matched all 271 files.
+The final metadata commit and tag still require their own hosted CI/archive checks.
+The first local full run exposed empty untracked directories left from the old checkout in a Git-handoff
 fixture; removing only those empty remnants made the unchanged test pass.
 The baseline uses the pinned SAT5 test extras, as prescribed by its CI setup.
 
@@ -46,8 +50,7 @@ The baseline uses the pinned SAT5 test extras, as prescribed by its CI setup.
 
 1. Require the user-committed clean candidate, exact SHA, reviewed diff against
    .1 and successful complete offline suites. Recheck remote branch/tag/release.
-2. After the technical publication review, change the readiness guard in a
-   separately committed preparation. Run
+2. Commit the reviewed publication metadata without code/test changes. Run
    `python scripts/check_release.py --for-publication --tag 5.0.0.2`.
 3. Push only the reviewed branch without force. Require both hosted CI profiles
    on the exact SHA; then create/push only annotated tag 5.0.0.2 and require tag CI.

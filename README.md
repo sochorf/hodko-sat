@@ -2,7 +2,8 @@
 
 Local maintenance fork of [Smart Autotune Thermostat](https://github.com/Alexwijn/SAT),
 combining **SAT 5.0.0** with an explicitly isolated **hodko.51 PI/HR** controller.
-Candidate version: **5.0.0.2** — offline startup repair, not published or deployed.
+Version: **5.0.0.2** — compatibility startup repair. Publication is separate
+from installation; use the verified release and migration procedure.
 Published **5.0.0.1** has a confirmed compatibility-platform cold-start defect.
 Keep **4.2.1.51** as the verified rollback release; do not retry .1 restarts as a fix.
 
@@ -69,7 +70,7 @@ prove live HA startup, hydraulic operation or delivery of a boiler command.
 
 See [migration and rollback](MIGRATION.md), [upstream documentation](README.upstream.md)
 and [license](LICENSE). Upstream credits and license notices are retained.
-This repair has `publication_ready=false`. Review and commit it before a
-separately authorized publication preflight; hosted CI and public archive
-verification remain required. Preparation is not permission to publish,
-install, restart HA or change the boiler policy.
+Local review is complete and `publication_ready=true`. The repair commit passed
+both hosted CI profiles; the final publication commit and tag require their own
+CI and public archive verification before release acceptance. Preparation is not
+permission to publish, install, restart HA or change the boiler policy.

@@ -1,7 +1,7 @@
 # Hodko SAT 5.0.0.2 — compatibility startup repair
 
-Offline candidate, not published or deployed. This repairs the failed clean start
-of existing PI/HR and shadow entries in published **5.0.0.1**.
+Repairs the failed clean start of existing PI/HR and shadow entries in
+**5.0.0.1**. Publishing this release does not install it or restart Home Assistant.
 
 ## What changes
 
@@ -34,7 +34,9 @@ accepted as success. Complete socket-disabled suites passed: **1,497 tests
 +53 subtests on HA2026.11.2**, **1,479 +53 on historical HA2026.10.2**, with one
 expected duplicate-source skip per profile and no failures/errors. These include
 actual Marketplace downgrade to the exact 80-file .51 tree. The reviewed
-inventory covers 161 component and 73 test files. Hosted CI for .2 is pending.
+inventory covers 161 component and 73 test files. Both hosted CI profiles passed
+on the repair commit; release acceptance requires matching final-commit and tag
+CI plus verification of the full GitHub source archive.
 
 Minimum supported HA remains **2026.11.2**, Python 3.14.8. Offline tests do not
 certify the deployed installation, actual flame, hydraulic heat or live DHW return.

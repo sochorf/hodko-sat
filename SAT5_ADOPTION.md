@@ -2,8 +2,8 @@
 
 Adoption prepared on 22 November 2026; startup repair prepared on 23 November.
 **5.0.0.1 was published and failed its live compatibility-platform startup.**
-The .2 candidate is offline only. Its narrow initialization fix and cold-process
-regressions are described in RELEASE_NOTES.md; no control policy is changed.
+The .2 repair is prepared for publication, separately from installation. Its
+narrow initialization fix and cold-process regressions are described in RELEASE_NOTES.md; no control policy is changed.
 
 ## Source and scope
 
@@ -12,8 +12,8 @@ regressions are described in RELEASE_NOTES.md; no control policy is changed.
 - Compatibility source: published Hodko 4.2.1.51, commit
   `d96348f2a3419baf841c3ce5ddb4bfcb6213ab78`.
 - `release-policy.json` pins the component inventory, tests, original sources
-  and preserved core hashes. The .2 publication guard remains false; publishing
-  and installation remain separately authorized actions.
+  and preserved core hashes. The .2 technical publication review is complete;
+  publication and installation remain separately authorized actions.
 
 This is an explicit two-policy package, **not conversion of PI/HR into SAT5 room
 PID**. Exactly one policy is constructed per entry. SAT5 is available for new
