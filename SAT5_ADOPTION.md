@@ -10,7 +10,8 @@ remains 4.2.1.51. No HA, MQTT, OTGW, radiator, DHW or Spook settings were change
 - Compatibility source: published Hodko 4.2.1.51, commit
   `d96348f2a3419baf841c3ce5ddb4bfcb6213ab78`.
 - `release-policy.json` pins the component inventory, tests, original sources
-  and preserved core hashes. Its publication gate is deliberately closed.
+  and preserved core hashes. Local publication preflight is complete; publishing
+  remains a separate explicitly authorized action.
 
 This is an explicit two-policy package, **not conversion of PI/HR into SAT5 room
 PID**. Exactly one policy is constructed per entry. SAT5 is available for new
@@ -93,14 +94,31 @@ The prior 13 review probes are identified separately from upstream tests. Four
 undesirable outcomes are changed to acceptance assertions for the explicit fixes;
 the other probes document native-policy differences, not Hodko acceptance.
 
-Final full suites: HA2026.11.2 **1,493 passed +53 subtests**, historical HA2026.10.2
+Final full suites: HA 2026.11.2 **1,493 passed +53 subtests**, historical HA 2026.10.2
 **1,475 passed +53 subtests**, one expected duplicate-source skip in each. Both
-used Python3.14.8 and disabled sockets. AST comparison of the entire compatibility
+used Python 3.14.8 and disabled sockets. AST comparison of the entire compatibility
 adapter found no behavior deltas beyond the reviewed entry/service-boundary
 changes in its initializer and climate services; other differences are import
 relocation and unregistered legacy config-flow class. See RELEASE_NOTES.md. CI configuration is prepared but no hosted
 CI was run in this task. These tests do not prove live startup, MQTT delivery,
 hydraulics, a natural DHW return or complete disaster restore.
+
+## Final committed-package acceptance — 22 November 2026
+
+Reviewed code/test commit: `e7c2ecd0084f0778265a6ea5920890fce9bfd6d2`.
+All 161 component and 71 test files match the earlier reviewed candidate exactly.
+The final HA 2026.11.2 suite passed again in a fresh environment installed directly
+from the hashed CI lock files, without dependency overlays: 1,493 tests +53
+subtests, one expected skip, six deprecation warnings, no failures or errors.
+The final baseline rerun passed 1,475 tests +53 subtests, one expected skip and
+one deprecation warning. After readiness metadata changed, all 18 Marketplace
+tests passed again, including the publication gate and actual .51 downgrade.
+The whole local code archive has 269 files. The public 4.2.1.51 rollback archive
+matches all 136 tracked files and all 80 component hashes at pinned commit `d96348f`.
+No live HA read/write, deployment, tag, push or release occurred in this acceptance.
+Only publication documentation/readiness metadata is prepared beyond the reviewed
+code commit. Hosted CI must run after an explicitly authorized push; the future
+published 5.0.0.1 archive must be checked before release/install acceptance.
 
 ## Maintenance decision
 

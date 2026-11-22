@@ -1,86 +1,79 @@
-# Candidate 5.0.0.1: subsequent fork update and return
+# Controlled update and return — 4.2.1.51 ↔ 5.0.0.1
 
-Preparation only: no live operation is authorized here. Existing `sat` ownership
-stays with `sochorf/hodko-sat` in Marketplace. Do not deploy this component from
-ha-config, repeat the owner repair, uninstall the integration or create new entries.
+Preparation only. Publication is not authorization to install, restart or change
+live control. Marketplace remains the sole owner of `sochorf/hodko-sat`, domain
+`sat`. Do not repeat owner repair, remove configurations, deploy SAT from the host
+configuration Git repository or create another controller for the same boiler.
 
-1. After a separately approved publication, take and verify a fresh full backup
-   of HA, installed 4.2.1.51 files, entries/registries, original report cache and
-   Marketplace state. Record active/shadow options and disabled/ignored entries.
-2. Verify the exact candidate release/CI/archive before the normal Marketplace
-   update. Keep season/global permissions, 55 °C, room targets, TUV and Spook as-is.
-   Schedule the one HA restart separately. No Z2M or OTGW restart is required.
-3. After restart verify manifest 5.0.0.1 and full hashes. Existing entries should
-   still be version10, same identities, same 13 saved heads and original PI/HR times.
-   Automatic HEAT, progressing decisions, startup OFF/CS10 confirmation, modulation,
-   CH ON/CS ACK and real CH/flame must be checked separately. Successful publish is
-   not ACK. No native room PID/PWM or new water-heater entity should be running for
-   these entries. Verify no new OFF repetitions, NoACK or counter errors.
-4. Observe a natural TUV cycle and bounded recovery/mixing without forcing it.
-   Record absence of a cycle as untested. Compare shadow before ramp using the same
-   report times/history; equal final CS is not the sole test. Keep max request55;
-   hotter actual residual DHW water is a separate quantity.
+## Before a separately authorized installation
 
-Return: use Marketplace's normal reinstall/version selection for **4.2.1.51**,
-verify its exact 80-file inventory, then the agreed HA restart and startup checks.
-The candidate deliberately leaves existing version10 entries, identifiers and
-cache schema unchanged. Offline tests restore the genuine old file tree and verify
-unchanged entry/registry inputs. They do not prove a physical/live restore.
-If configuration/registries were changed outside that path, use the verified
-backup instead of inventing a downgrade. Newly created native version13 entries
-are not readable by .51 and require their own recorded rollback/backup.
+1. Verify the published 5.0.0.1 tag, exact commit, both hosted CI profiles and
+   complete source archive using [PUBLISHING.md](PUBLISHING.md). Require supported
+   HA ≥2026.11.2. Record the actual installed version and file inventory afresh.
+2. Take and verify a fresh full HA backup, including current SAT files,
+   entries/registries, Marketplace records and original-time report cache.
+   Store private backup material outside Git. Record entry IDs and versions,
+   disabled/ignored entries, active/shadow settings, member list, transport,
+   heating-season/global permission and original report timestamps.
+3. Preserve the known 4.2.1.51 archive and its 80-file inventory from commit
+   `d96348f2a3419baf841c3ce5ddb4bfcb6213ab78`. Do not rely solely on the older
+   backup taken before the original ownership migration.
+4. Record 55 °C in SAT, shadow and OTGW, current room targets, independent DHW
+   permission/schedule and disabled Spook. This update must not change them.
+   Record recent MQTT/command-error counters and CH state for comparison.
 
-Do not leave mixed old/new files; on partial install failure inspect Marketplace's
-rollback result. HA should retain one boiler writer. Do not bypass safety by
-repeated manual HEAT. The original first-install notes below are historical.
+## Installation and startup acceptance
 
----
+1. Use the normal Marketplace version update in the existing fork, followed by
+   the one separately agreed HA restart. No Z2M/OTGW restart, telemetry transport
+   switch, manual parameter rewrite or routine manual OFF/HEAT is required.
+   A HA restart is a service interruption; uninterrupted heat is not guaranteed.
+2. Verify loaded version **5.0.0.1** and all **161** component hashes, including
+   `compat`. Compare entries/registries/options to the fresh backup: existing
+   version10 entries, identities and saved members must remain unchanged.
+   No new native controller or water-heater writer may own these entries.
+3. Verify automatic HEAT with season/global enabled, startup_ready and no fault.
+   Check original PI/HR timestamps and remaining validity in active SAT and
+   shadow. One eligible demanding zone suffices; do not wait for all heads.
+   Restored data is not a new report and must not acquire a newer source time.
+4. Check the startup sequence with fresh OFF/CS10, modulation and CH ON/CS
+   confirmations. MQTT PUBACK alone is insufficient. Observe CS ≤55, CH enable,
+   actual CH status, flame, supply and return temperatures separately. Evaluate
+   startup within 10 minutes of valid inputs without a DHW block; diagnose
+   concrete blockers instead of repeatedly issuing HEAT.
+5. For 30–45 minutes inspect CH continuity, CS keepalive/ACK deadlines, new NoACK,
+   counter/session errors, redundant OFF/CS10 and fresh room reports. A change
+   of demand must not by itself replay the startup sequence. Compare shadow's
+   proposal before the ramp using matching source times/history, not only CS.
+6. Observe a natural DHW cycle and return/mixing within the existing configured
+   windows. Do not force a cycle; if none occurs, record return as untested.
+   Hot residual water is different from the CS request limit. Do not claim
+   continuous monitoring from isolated samples; use history for intervening events.
 
-# Migration and rollback — preparation only
+A fault, loss of preserved configuration, second writer, CS above55 or persistent
+startup/return failure requires a concrete diagnosis and the agreed rollback.
+This document does not independently authorize a new live command or safety bypass.
 
-No live operation is authorized by this document. This local candidate does not
-replace files in an installation and does not change the current Git owner.
+## Return to 4.2.1.51
 
-## Before publication
+- With rollback explicitly authorized, select/reinstall **4.2.1.51** through the
+  same Marketplace repository. No integration uninstall, owner repair, Git
+  handoff or manual rewriting of registries is needed for unchanged version10
+  entries. Verify **all 80 old component files**, with no leftover `compat` or
+  other files introduced by 5.0.0.1, before the agreed HA restart.
+- Recheck loaded 4.2.1.51, original entries/settings/cache, automatic HEAT,
+  original-time demand, command ACK and real CH/flame; preserve 55, DHW and Spook.
+  Repeat continuity and natural-DHW-return acceptance as applicable.
+- If update/downgrade fails partway, inspect Marketplace's transaction rollback
+  and full file hashes before restarting. Never accept a mixed component tree.
+- New native version13 entries cannot be loaded by .51. If such entries were
+  created, or settings/registries changed beyond this migration, restore the
+  corresponding verified pre-update backup instead of assuming a code-only
+  downgrade reverses them. Do not restore old command confirmation as fresh proof.
 
-Follow [PUBLISHING.md](PUBLISHING.md): review and commit the publication metadata,
-verify the tested component/test hashes, then separately publish the public fork
-and a matching `4.2.1.51` tag/release from the exact reviewed commit.
-Do not use `+hodko.N` for sequential updates: the standard version comparator
-ignores build metadata. Later fork revisions use `4.2.1.52`, etc.
-
-## Before the first installation
-
-1. Confirm the running repaired .51, completed membership migrations, the exact
-   active/shadow entries and original-time report cache. Record limits, transport,
-   heating-season state and the independent DHW schedule. Do not export secrets
-   into this repository. A missing migration is a stop condition, not permission
-   to inject private device identities into the public package.
-2. Obtain and verify a complete HA backup including code, Git index, registries,
-   Marketplace records and cache. Preserve the exact private .51 package for return.
-3. Prepare a separately approved maintenance window and Git ownership handoff on
-   the installation host. The serving files must survive removal **from the index**.
-   A deletion commit made on a workstation can remove the serving files on pull;
-   do not use it for this transition. Temporarily stop automated Git deploy before
-   the handoff, resolve its failure/reset behavior and validate the complete chain.
-4. Use the standard Marketplace repository swap. Two repositories must not both
-   own domain `sat`. Keep entries/entities; do not remove the integration itself.
-   Uninstalling the old repository removes files. If the subsequent first install
-   fails, that uninstall is not automatically undone by the new transaction.
-5. Restart only as part of the agreed change. Verify loaded version and file
-   inventory, automatic HEAT, progressing decisions, original-time PI/HR, fresh
-   CH/CS confirmation, actual CH/flame and the saved limit. Observe a natural DHW
-   cycle; if none occurs, record the untested return rather than forcing a cycle.
-   Validate shadow as a pre-ramp proposal, not necessarily equal active CS.
-
-## Return
-
-Before restart, a failed first install needs explicit restoration of the preserved
-.51 files and original ownership; never leave a partial component directory.
-After restart, prefer the verified full backup if entry/cache/manager state changed.
-Keep automated Git deploy disabled until its history and owner match the returned
-installation. Standard subsequent fork-version downgrade is tested offline but
-does not reverse external HA configuration changes or restore arbitrary backups.
-
-Never activate a second boiler writer. Leave DHW automation and saved limits alone.
-Offline transaction tests are not an authorization or proof of a live restore.
+Offline tests use HA 2026.11.2's actual Marketplace transaction code and the genuine
+4.2.1.51 tree. They cover failed-install recovery, old-file restoration and
+entry/registry preservation. They do not prove physical heat delivery or a full
+live backup restore. The historical first-ownership migration is recorded in the
+[old version](https://github.com/sochorf/hodko-sat/blob/4.2.1.51/MIGRATION.md);
+it is not the procedure for this subsequent update.

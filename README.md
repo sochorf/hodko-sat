@@ -12,9 +12,8 @@ SAT5 features are not automatically activated for existing PI/HR installations.
 
 The publication target is `sochorf/hodko-sat`. Publication and installation are
 separate operations; preparing this tree does not publish or install it.
-The release policy's `published_repository` field records the reviewed destination,
-not evidence that a GitHub repository or release already exists. See
-[publication procedure](PUBLISHING.md) and [first release notes](RELEASE_NOTES.md).
+The existing fork publishes releases through standard Marketplace metadata.
+See the [publication procedure](PUBLISHING.md) and [5.0.0.1 release notes](RELEASE_NOTES.md).
 
 The `sat` integration domain, saved settings, entity identities and report-cache
 keys remain unchanged. Existing water limits are preserved, including a saved
@@ -64,5 +63,7 @@ prove live HA startup, hydraulic operation or delivery of a boiler command.
 
 See [migration and rollback](MIGRATION.md), [upstream documentation](README.upstream.md)
 and [license](LICENSE). Upstream credits and license notices are retained.
-Publication is gated off for this candidate. Commit preparation is not permission
-to publish, install, restart HA or change the boiler policy.
+Local publication preflight is complete; `publication_ready=true` records technical
+readiness only. Hosted CI and public archive verification remain required at the
+separately authorized publication. Preparation is not permission to publish,
+install, restart HA or change the boiler policy.

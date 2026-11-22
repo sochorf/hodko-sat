@@ -1,83 +1,86 @@
-# Candidate 5.0.0.1 — publication not authorized
+# Publication plan — Hodko SAT 5.0.0.1
 
-This task prepares local changes only. `release-policy.json` has
-`publication_ready=false`; publication/tag validation must fail until a separate
-review explicitly opens that gate. Do not create a tag, release or push now.
+Prepared on 22 November 2026. **No push, tag, release or installation is authorized
+by this document.** Publication and installation require separate instructions.
+The reviewed code/test commit is `e7c2ecd0084f0778265a6ea5920890fce9bfd6d2`.
+The final release commit must also contain this publication preparation.
 
-Before any later authorized publication: commit the entire mixed code/test/docs
-change; run both pinned test profiles and release inventory checks on the exact
-commit; review the 5.0.0.1 notes and rollback. Publish through the existing
-`sochorf/hodko-sat` repository, never overwrite 4.2.1.51. Verify hosted branch/tag CI
-and all source-archive hashes. Publishing and installing remain separate actions.
-SAT5 adoption does not require another Marketplace owner repair.
+## Scope and evidence
 
-The following is the retained historical first-release procedure, **not the
-instructions for this candidate**.
+- Existing destination: `sochorf/hodko-sat`, branch `codex/hodko-sat`.
+  Manifest and intended tag: **5.0.0.1**; minimum HA: **2026.11.2**.
+- Existing version10 / PI/HR / shadow entries keep the .51 compatibility policy.
+  New native version13 entries use SAT5. This is not a change of boiler policy.
+- The code commit's local source archive contains 269 files, including all
+  161 reviewed component files and 71 test files; hashes match the working tree
+  and release inventory. Documentation/readiness changes must leave those
+  component and test hashes unchanged.
+- The published rollback archive **4.2.1.51** was downloaded and checked against
+  `d96348f2a3419baf841c3ce5ddb4bfcb6213ab78`: all 136 files match, including the
+  exact 80-file component. Keep that release and annotated tag unchanged.
+- Public GitHub metadata at preparation time: branch still at `d96348f`, latest
+  stable 4.2.1.51; tag and release 5.0.0.1 absent. Recheck before publication.
+- Final exact-commit offline reruns: HA2026.11.2 **1,493 tests +53 subtests**
+  (also in a fresh environment from the CI dependency locks); historical
+  HA2026.10.2 **1,475 +53**. One expected duplicate-source skip in each, no
+  failures/errors. After readiness metadata changed, all **18 Marketplace
+  tests** passed again, including publication checks and actual .51 file return.
+- `publication_ready=true` records completed **local technical preparation**.
+  It neither publishes anything nor grants permission to push, tag or install.
+  Hosted CI and the eventual GitHub source archive remain publication gates.
 
-# First publication — 4.2.1.51
+Do not include a push of the host HA configuration repository: its pending commit
+also contains unrelated scheduler changes and can deploy automatically. Marketplace
+already owns SAT. No owner repair, integration removal or Git handoff is needed.
 
-Destination: **sochorf/hodko-sat**, a public fork of Alexwijn/SAT.
-Release branch: **codex/hodko-sat**. Tag: **4.2.1.51** (exactly the manifest).
-The local policy records the reviewed destination; no publication is performed by
-the build, checks, tests or CI. The first release notes are in RELEASE_NOTES.md.
+## Final local preflight
 
-## Local preflight
+1. Commit this mixed publication metadata/documentation preparation. Require a
+   clean tree and record the full final SHA. Review changes since `e7c2ecd`:
+   only the reviewed publication files may differ. If code, tests, dependency
+   locks or CI change, review and rerun the affected checks before proceeding.
+2. Run `python scripts/check_release.py --for-publication --tag 5.0.0.1`.
+   This validates version, destination, all component/test hashes, preserved
+   core hashes, licenses and the built-in private-data checks.
+3. Run the pinned `baseline` and `ha-2026.11.2` profiles in
+   `.github/workflows/tests.yml`. The baseline is historical compatibility,
+   not a lower supported HA version. Check full results, not only process start.
+4. Create a local `git archive` from that exact SHA. Check every published path
+   against Git, the 161-file inventory, licenses and `hacs.json`. Review that no
+   credentials, device maps, logs, caches or local artifacts enter the archive.
 
-1. Commit the publication metadata and docs. The component, tests, dependency
-   locks and original-time behavior must match the reviewed 3ec1b49 baseline.
-   Require a clean working tree, verify the final full SHA and inspect its diff.
-2. Run `python scripts/check_release.py --for-publication --tag 4.2.1.51`.
-   Verify no private paths, credentials, device maps, cache, logs or test artifacts
-   are tracked. Preserve upstream copyright and license history.
-3. Keep upstream pushes disabled. Do not configure a deployment remote or a
-   production HA workflow. Do not push the host HA configuration repository as a
-   way to publish this integration.
+## Later explicitly authorized publication
 
-## Explicitly approved GitHub publication
+1. Recheck repository identity, existing tags/releases and remote branch. Keep
+   upstream pushes disabled. Push only the reviewed `codex/hodko-sat` branch,
+   without force, mirror, all-tags, upstream sync, merge or rebase. If the remote
+   advanced, stop and inspect it; do not overwrite another change.
+2. Require successful hosted CI for **both profiles on the exact final SHA**.
+   A queued, skipped or cancelled job is not a pass. Inspect JUnit results and
+   confirm no unexpected deselection, failure or skip.
+3. Create annotated tag **5.0.0.1** on that same SHA; push only this tag. If it
+   already exists, verify its peeled SHA rather than replacing it. Require
+   successful tag CI, including `--for-publication --tag 5.0.0.1`.
+4. Download the GitHub source archive for that tag. Compare every extracted
+   file with `git archive` for the pinned SHA and all 161 component hashes.
+   Compare content, not only ZIP bytes: GitHub may regenerate the container.
+5. Prepare a draft titled **Hodko SAT 5.0.0.1** using RELEASE_NOTES.md. Convert
+   relative documentation links to tagged GitHub links. Do not generate notes
+   from unrelated upstream history or attach a second hand-built payload.
+6. After CI/archive/notes acceptance, publish as stable/latest if that is within
+   the explicit publication authorization. Verify tag SHA, version, release
+   URLs and latest metadata. Publishing makes the update discoverable; it is
+   not permission to install it, restart HA or alter installed settings.
 
-1. Verify the signed-in account and whether `sochorf/hodko-sat` already exists.
-   Reuse only a verified correct fork; never overwrite an unrelated repository.
-   If absent, create a real fork of Alexwijn/SAT named `hodko-sat`, with only its
-   default branch copied. GitHub may initially copy an upstream SAT 5 branch;
-   this is not the release branch and must not become our installable candidate.
-2. Configure **origin** to the verified fork URL. Push only the reviewed
-   `codex/hodko-sat` branch, without `--force`, `--mirror` or `--tags`.
-   Set it as the fork's default branch and verify its full SHA. Do not merge,
-   rebase, sync the fork from upstream, or publish upstream tags/releases.
-3. Enable the reviewed offline Actions workflow if GitHub initially disables
-   workflows in the fork. Run both profiles and inspect their logs for the exact
-   pushed SHA. A queued, cancelled or skipped job is not a successful result.
-   Ensure Issues is enabled for the manifest's support URL; no issue is created.
-4. Only after successful branch CI, create the new annotated `4.2.1.51` tag on
-   that same SHA and push **that tag alone**. If the tag already exists, check its
-   peeled SHA and never replace it. Wait for successful tag CI, including the
-   publication/tag check. Any subsequent code commit needs a fresh review/run.
-5. Create a draft release for the verified existing tag. Title: `Hodko SAT 4.2.1.51`.
-   Use RELEASE_NOTES.md verbatim, adapting its relative links to the tagged files
-   on GitHub. Do not use auto-generated notes pulling in unrelated upstream work.
-   Publish as a stable release, not prerelease, and mark it latest only after the
-   final review of tag, CI, notes and source archive. No custom binary ZIP is needed.
+## Failure before installation
 
-## Read-only post-publication acceptance
+Keep 4.2.1.51 installed. A failed check blocks release publication. Do not move
+an existing tag or overwrite an already published archive. If a public release
+is found defective, restore 4.2.1.51 as the advertised latest release through a
+separately authorized metadata correction and prepare a new reviewed version;
+this does not downgrade any installation automatically. A downloaded 5.0.0.1
+requires the explicit [installation rollback](MIGRATION.md).
 
-- Confirm repository fork-parent, default branch, branch/tag/peeled commit SHA,
-  stable release, version and documentation/issue URLs. A repository page is not
-  proof that a release exists or that Actions succeeded.
-- Download the published source archive; compare all 80 integration files with
-  `release-policy.json` and confirm both licenses, manifest and `hacs.json`.
-  Compare extracted file hashes, not only the ZIP checksum: GitHub can regenerate
-  archive bytes. No personal fixtures, credentials, cache or logs may be present.
-- Confirm Marketplace can discover the dedicated release through normal repository
-  metadata before any separately approved installation. This step must not install
-  it, reload SAT, change HA ownership or touch heating/DHW settings.
-
-## Failure and return before deployment
-
-If branch/tag CI or archive checks fail, stop before release publication and fix
-the local candidate. Do not overwrite an existing release tag. If a release is
-already public, clearly mark the problem and prepare a reviewed follow-up version;
-do not treat editing release text as a rollback of downloaded code. The current
-private .51 remains deployed throughout this publication process.
-
-Sources: [GitHub forking](https://docs.github.com/en/rest/repos/forks),
-[GitHub releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository).
+Historical first-publication instructions remain in the
+[4.2.1.51 source](https://github.com/sochorf/hodko-sat/blob/4.2.1.51/PUBLISHING.md).
+They must not be repeated for this normal fork update.
