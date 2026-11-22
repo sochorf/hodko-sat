@@ -1,0 +1,10 @@
+{
+  "version": "4.2.0",
+  "source": "Installed /Volumes/config/custom_components/sat/climate.py read-only, 2026-10-18",
+  "base_sha256": "b83246ea64a3b278884d0acb20864cb987e2e219d9470f9c9e3103167d2aac01",
+  "patched_sha256": "7c8193e02ce7994bd6673eca9f21c96301a95061b22d4e007b320e9f166cc7c1",
+  "dependency_sha256": {
+    "const.py": "1745aa39e16122c236eab9e5e6b89b397cb060cf8159544b393dc75b0c0c719d",
+    "mqtt/opentherm.py": "fc76f690f8d6caded40c9c61357946c28e2cacef6653f19df06f94bd08a52b3b"
+  }
+}

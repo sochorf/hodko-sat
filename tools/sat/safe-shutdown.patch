@@ -1,0 +1,125 @@
+--- a/climate.py
++++ b/climate.py
+@@ -114,6 +114,11 @@
+         self._calculated_setpoint = None
+         self._last_boiler_temperature = None
+ 
++        self._control_lock = asyncio.Lock()
++        self._mode_lock = asyncio.Lock()
++        self._control_timeout = 10.0
++        self._shutdown_timeout = 5.0
++        self._mode_timeout = 30.0
+         self._hvac_mode = None
+         self._target_temperature = None
+         self._window_sensor_handle = None
+@@ -922,6 +927,12 @@
+         self._control_heating_loop_unsub = async_call_later(self.hass, 10, HassJob(self.async_control_heating_loop))
+ 
+     async def async_control_heating_loop(self, _time: Optional[datetime] = None) -> None:
++        """Serialize boiler writes with shutdown; bound a stalled control cycle."""
++        async with self._control_lock:
++            async with asyncio.timeout(self._control_timeout):
++                await self._async_control_heating_loop(_time)
++
++    async def _async_control_heating_loop(self, _time: Optional[datetime] = None) -> None:
+         """Control the heating based on current temperature, target temperature, and outside temperature."""
+         # Let the sub know we have run
+         self._control_heating_loop_unsub = None
+@@ -936,6 +947,8 @@
+ 
+         # Control the heating through the coordinator
+         await self._coordinator.async_control_heating_loop(climate=self, pwm_state=self.pwm.state)
++        if self.hvac_mode != HVACMode.HEAT:
++            return
+ 
+         if self._calculated_setpoint is None:
+             # Default to the calculated setpoint
+@@ -954,12 +967,18 @@
+             self.pwm.reset()
+         else:
+             await self.pwm.update(flame=self._coordinator.flame, boiler=self._coordinator.boiler, requested_setpoint=self._calculated_setpoint)
++            if self.hvac_mode != HVACMode.HEAT:
++                return
+ 
+         # Set the control setpoint to make sure we always stay in control
+         await self._async_control_setpoint(self.pwm.state)
++        if self.hvac_mode != HVACMode.HEAT:
++            return
+ 
+         # Set the relative modulation value, if supported
+         await self._async_control_relative_modulation()
++        if self.hvac_mode != HVACMode.HEAT:
++            return
+ 
+         # Control the integral (if exceeded the time limit)
+         if self.heating_curve.value is not None:
+@@ -967,6 +986,8 @@
+ 
+         # Control our areas
+         await self.areas.async_control_heating_loops()
++        if self.hvac_mode != HVACMode.HEAT:
++            return
+ 
+         # Control our dynamic minimum setpoint (version 1)
+         if not self._coordinator.hot_water_active and self._coordinator.flame_active:
+@@ -987,6 +1008,8 @@
+         _LOGGER.debug("Attempting to set heater state to: %s", state)
+ 
+         if state == DeviceState.ON:
++            if self.hvac_mode != HVACMode.HEAT:
++                return
+             if self._coordinator.device_active:
+                 _LOGGER.info("Heater is already active. No action taken.")
+                 return
+@@ -995,11 +1018,8 @@
+                 _LOGGER.warning("Cannot turn on heater: no valves are open.")
+                 return
+ 
+-        elif state == DeviceState.OFF:
+-            if not self._coordinator.device_active:
+-                _LOGGER.info("Heater is already off. No action taken.")
+-                return
+-
++        # CH activity is delayed telemetry, not acknowledgement of CH enable.
++        # Always publish OFF, including repeated requests and startup races.
+         await self._coordinator.async_set_heater_state(state)
+ 
+     async def async_set_temperature(self, **kwargs) -> None:
+@@ -1016,13 +1036,36 @@
+         return await self.async_set_target_temperature(temperature)
+ 
+     async def async_set_hvac_mode(self, hvac_mode: HVACMode, cascade: bool = True) -> None:
++        """Order mode changes, so a concurrent HEAT cannot overtake OFF."""
++        async with self._mode_lock:
++            async with asyncio.timeout(self._mode_timeout):
++                await self._async_set_hvac_mode(hvac_mode, cascade)
++
++    async def _async_shutdown(self) -> None:
++        """Drain the current cycle, then send OFF and a low setpoint.
++
++        Each write has its own deadline. A failed OFF must still attempt the
++        setpoint, but failure is propagated: publishing is not boiler ACK.
++        """
++        async with self._control_lock:
++            self.reset_control_state()
++            self._setpoint = MINIMUM_SETPOINT
++            try:
++                async with asyncio.timeout(self._shutdown_timeout):
++                    await self.async_set_heater_state(DeviceState.OFF)
++            finally:
++                async with asyncio.timeout(self._shutdown_timeout):
++                    await self._coordinator.async_set_control_setpoint(MINIMUM_SETPOINT)
++
++    async def _async_set_hvac_mode(self, hvac_mode: HVACMode, cascade: bool = True) -> None:
+         """Set the heating/cooling mode for the devices and update the state."""
+         # Only allow the hvac mode to be set to heat or off
+         if hvac_mode == HVACMode.HEAT:
+             self._hvac_mode = HVACMode.HEAT
+         elif hvac_mode == HVACMode.OFF:
+             self._hvac_mode = HVACMode.OFF
+-            await self.async_set_heater_state(DeviceState.OFF)
++            self.async_write_ha_state()
++            await self._async_shutdown()
+         else:
+             # If an unsupported mode is passed, log an error message
+             _LOGGER.error("Unrecognized hvac mode: %s", hvac_mode)

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from math import isfinite
 from datetime import timedelta, datetime
 from time import monotonic, time
 from typing import Optional, Callable
@@ -28,7 +29,7 @@ from homeassistant.components.climate import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, STATE_UNAVAILABLE, STATE_UNKNOWN, ATTR_ENTITY_ID, STATE_ON, STATE_OFF, EVENT_HOMEASSISTANT_STARTED
-from homeassistant.core import HomeAssistant, ServiceCall, Event, CoreState, EventStateChangedData, HassJob
+from homeassistant.core import HomeAssistant, ServiceCall, Event, CoreState, EventStateChangedData, HassJob, callback
 from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval, async_call_later
@@ -107,6 +108,7 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
         # Create a dictionary mapping preset keys to temperature values
         self._presets = {key: config_options[value] for key, value in conf_presets.items() if key in conf_presets}
 
+        self._pid_needs_initial_sample = True
         self._alpha = 0.2
         self._sensors = []
         self._rooms = None
@@ -114,6 +116,12 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
         self._calculated_setpoint = None
         self._last_boiler_temperature = None
 
+        self._control_lock = asyncio.Lock()
+        self._mode_lock = asyncio.Lock()
+        self._control_timeout = 30.0
+        self._control_closing = False
+        self._shutdown_timeout = 15.0
+        self._mode_timeout = 60.0
         self._hvac_mode = None
         self._target_temperature = None
         self._window_sensor_handle = None
@@ -183,6 +191,17 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
         # Create a PWM controller with given configuration options
         self.pwm = create_pwm_controller(self.heating_curve, coordinator.supports_relative_modulation_management, config_entry.data, config_options)
 
+        self._ally_runtime = None
+        mode = config_entry.options.get('hodko_control_mode', 'room_pid')
+        if mode not in ('room_pid', 'ally_demand'):
+            raise ValueError('Unknown control mode')
+        if mode == 'ally_demand':
+            from .ally.runtime import Runtime
+            self._ally_runtime = Runtime(self, config_entry.options.get('hodko_ally', {}))
+            self._coordinator._hodko_strict_publish = True
+            self._attr_supported_features = ClimateEntityFeature.TURN_ON | ClimateEntityFeature.TURN_OFF
+            self._attr_preset_modes = []
+
         if self._simulation:
             _LOGGER.warning("Simulation mode!")
 
@@ -198,6 +217,10 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
         """Run when entity about to be added."""
         await super().async_added_to_hass()
 
+        if self._ally_runtime is not None:
+            await self._ally_runtime.start()
+            return
+
         # Restore the previous state if available, or set default values
         await self._restore_previous_state_or_set_defaults()
 
@@ -207,8 +230,8 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
             self.heating_curve.update(self.target_temperature, self.current_outside_temperature)
 
         if self.hass.state is not CoreState.running:
-            self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, self._register_event_listeners)
-            self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, self.async_control_heating_loop)
+            self.async_on_remove(self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, self._register_event_listeners))
+            self.async_on_remove(self.hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, self.async_control_heating_loop))
         else:
             await self._register_event_listeners()
             await self.async_control_heating_loop()
@@ -224,6 +247,8 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
 
     async def _register_event_listeners(self, _time: Optional[datetime] = None):
         """Register event listeners."""
+        if self._control_closing:
+            return
         self.async_on_remove(
             async_track_time_interval(
                 self.hass, self.schedule_control_heating_loop, timedelta(seconds=30)
@@ -341,6 +366,11 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
             if not self._hvac_mode:
                 self._hvac_mode = HVACMode.OFF
 
+        return_id = self._config_entry.options.get('hodko_return_id')
+        if return_id and (old_state is None or old_state.attributes.get('hodko_return_id') != return_id):
+            self._hvac_mode = HVACMode.OFF
+            self._target_temperature = self._config_entry.options['hodko_return_target']
+            self.reset_control_state()
         self.async_write_ha_state()
 
     async def _register_services(self):
@@ -364,7 +394,10 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
     @property
     def extra_state_attributes(self):
         """Return device state attributes."""
+        if self._ally_runtime is not None:
+            return self._ally_runtime.attributes
         return {
+            "hodko_return_id": self._config_entry.options.get("hodko_return_id"),
             "error": self.max_error.value,
             "error_pid": self.pid.last_error,
             "error_source": self.max_error.entity_id,
@@ -621,6 +654,7 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
         """Handle changes to the inside temperature sensor."""
         new_state = event.data.get("new_state")
         if new_state is None or new_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
+            self._pid_needs_initial_sample = True
             return
 
         _LOGGER.debug("Inside Sensor Changed.")
@@ -631,7 +665,8 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
 
     async def _async_outside_entity_changed(self, event: Event[EventStateChangedData]) -> None:
         """Handle changes to the outside entity."""
-        if event.data.get("new_state") is None:
+        if event.data.get("new_state") is None or not self._pid_inputs_valid():
+            self._pid_needs_initial_sample = True
             return
 
         _LOGGER.debug("Outside Sensor Changed.")
@@ -753,10 +788,19 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
 
             return
 
+    def _pid_inputs_valid(self) -> bool:
+        """Missing/nonfinite temperatures are not a zero control error."""
+        try:
+            values = (self.current_temperature, self.target_temperature,
+                      self.current_outside_temperature)
+            return all(v is not None and isfinite(v) for v in values)
+        except (TypeError, ValueError):
+            return False
+
     def _async_control_pid(self, reset: bool = False) -> None:
         """Control the PID controller."""
-        # We can't continue if we don't have a valid outside temperature
-        if self.current_outside_temperature is None:
+        if not self._pid_inputs_valid():
+            self._pid_needs_initial_sample = True
             return
 
         # Reset the PID controller if the sensor data is too old
@@ -771,6 +815,19 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
         if self.target_temperature is not None:
             self.areas.heating_curves.update(self.current_outside_temperature)
             self.heating_curve.update(self.target_temperature, self.current_outside_temperature)
+
+        # Never derive a slope across startup or an unavailable-input interval.
+        # Wait for the coordinator too, then seed P with the actual current error.
+        if self._pid_needs_initial_sample:
+            water = self._coordinator.boiler_temperature_filtered
+            if water is None or not isfinite(water):
+                return
+            self.pid.update_reset(error=max_error, heating_curve_value=self.heating_curve.value)
+            self._calculated_setpoint = None
+            self.pwm.reset()
+            self._pid_needs_initial_sample = False
+            self.async_write_ha_state()
+            return
 
         # Update the PID controller with the maximum error
         if not reset:
@@ -903,39 +960,62 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
 
         self._sensors.append(entity_id)
 
-    def schedule_control_heating_loop(self, _time: Optional[datetime] = None, force: bool = False, ) -> None:
-        """Schedule a debounced execution of the heating control loop."""
-        # Force immediate execution
+    @callback
+    def schedule_control_heating_loop(self, _time: Optional[datetime] = None, force: bool = False) -> None:
+        """Debounce only on HA's event loop; interval jobs must not use an executor."""
+        if self._control_closing:
+            return
         if force:
-            # Cancel previous scheduled run, if any
             if self._control_heating_loop_unsub is not None:
                 self._control_heating_loop_unsub()
                 self._control_heating_loop_unsub = None
-
-                self.hass.async_create_task(self.async_control_heating_loop())
-                return
-
-        # If a run is already scheduled, do nothing.
+            self.hass.async_create_task(self.async_control_heating_loop())
+            return
         if self._control_heating_loop_unsub is not None:
             return
+        self._control_heating_loop_unsub = async_call_later(
+            self.hass, 10, HassJob(self._run_scheduled_control))
 
-        self._control_heating_loop_unsub = async_call_later(self.hass, 10, HassJob(self.async_control_heating_loop))
+    @callback
+    def _run_scheduled_control(self, _time=None) -> None:
+        # A fired timer is no longer pending, even while a writer owns the lock.
+        self._control_heating_loop_unsub = None
+        if not self._control_closing:
+            self.hass.async_create_task(self.async_control_heating_loop())
 
     async def async_control_heating_loop(self, _time: Optional[datetime] = None) -> None:
-        """Control the heating based on current temperature, target temperature, and outside temperature."""
-        # Let the sub know we have run
-        self._control_heating_loop_unsub = None
+        """Serialize boiler writes with shutdown; bound a stalled control cycle."""
+        if self._control_closing:
+            return
+        if self._ally_runtime is not None:
+            await self._ally_runtime.cycle()
+            return
+        async with self._control_lock:
+            if self._control_closing:
+                return
+            async with asyncio.timeout(self._control_timeout):
+                await self._async_control_heating_loop(_time)
 
+    async def _async_control_heating_loop(self, _time: Optional[datetime] = None) -> None:
+        """Control the heating based on current temperature, target temperature, and outside temperature."""
         # If the current, target or outside temperature is not available, do nothing
-        if self.current_temperature is None or self.target_temperature is None or self.current_outside_temperature is None:
+        if not self._pid_inputs_valid():
+            self._pid_needs_initial_sample = True
             return
 
         # No need to do anything if we are not on
         if self.hvac_mode != HVACMode.HEAT:
             return
 
+        if self._pid_needs_initial_sample:
+            self._async_control_pid()
+            if self._pid_needs_initial_sample:
+                return
+
         # Control the heating through the coordinator
         await self._coordinator.async_control_heating_loop(climate=self, pwm_state=self.pwm.state)
+        if self.hvac_mode != HVACMode.HEAT:
+            return
 
         if self._calculated_setpoint is None:
             # Default to the calculated setpoint
@@ -954,12 +1034,18 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
             self.pwm.reset()
         else:
             await self.pwm.update(flame=self._coordinator.flame, boiler=self._coordinator.boiler, requested_setpoint=self._calculated_setpoint)
+            if self.hvac_mode != HVACMode.HEAT:
+                return
 
         # Set the control setpoint to make sure we always stay in control
         await self._async_control_setpoint(self.pwm.state)
+        if self.hvac_mode != HVACMode.HEAT:
+            return
 
         # Set the relative modulation value, if supported
         await self._async_control_relative_modulation()
+        if self.hvac_mode != HVACMode.HEAT:
+            return
 
         # Control the integral (if exceeded the time limit)
         if self.heating_curve.value is not None:
@@ -967,6 +1053,8 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
 
         # Control our areas
         await self.areas.async_control_heating_loops()
+        if self.hvac_mode != HVACMode.HEAT:
+            return
 
         # Control our dynamic minimum setpoint (version 1)
         if not self._coordinator.hot_water_active and self._coordinator.flame_active:
@@ -987,6 +1075,8 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
         _LOGGER.debug("Attempting to set heater state to: %s", state)
 
         if state == DeviceState.ON:
+            if self.hvac_mode != HVACMode.HEAT:
+                return
             if self._coordinator.device_active:
                 _LOGGER.info("Heater is already active. No action taken.")
                 return
@@ -995,11 +1085,8 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
                 _LOGGER.warning("Cannot turn on heater: no valves are open.")
                 return
 
-        elif state == DeviceState.OFF:
-            if not self._coordinator.device_active:
-                _LOGGER.info("Heater is already off. No action taken.")
-                return
-
+        # CH activity is delayed telemetry, not acknowledgement of CH enable.
+        # Always publish OFF, including repeated requests and startup races.
         await self._coordinator.async_set_heater_state(state)
 
     async def async_set_temperature(self, **kwargs) -> None:
@@ -1016,13 +1103,78 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
         return await self.async_set_target_temperature(temperature)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode, cascade: bool = True) -> None:
+        """Order mode changes, so a concurrent HEAT cannot overtake OFF."""
+        async with self._mode_lock:
+            if self._control_closing:
+                raise ValueError("SAT controller is unloading")
+            if getattr(self, "_hodko_transition_pending", False) and hvac_mode != HVACMode.OFF:
+                raise ValueError("SAT mode transition pending reload")
+            async with asyncio.timeout(self._mode_timeout):
+                await self._async_set_hvac_mode(hvac_mode, cascade)
+
+    async def async_close_control(self):
+        """Freeze both modes, cancel delayed callbacks, drain writers, then stop."""
+        self._control_closing = True
+        if self._control_heating_loop_unsub is not None:
+            self._control_heating_loop_unsub()
+            self._control_heating_loop_unsub = None
+        if self._window_sensor_handle is not None:
+            self._window_sensor_handle.cancel()
+        if self._ally_runtime is not None:
+            self._ally_runtime.closed = True
+        self._hvac_mode = HVACMode.OFF
+        async with asyncio.timeout(65):
+            async with self._mode_lock:
+                await self._async_shutdown()
+
+    async def _async_shutdown(self) -> None:
+        """Drain the current cycle, then send OFF and a low setpoint.
+
+        Each write has its own deadline. A failed OFF must still attempt the
+        setpoint, but failure is propagated: publishing is not boiler ACK.
+        """
+        async with self._control_lock:
+            self.reset_control_state()
+            self._setpoint = MINIMUM_SETPOINT
+            try:
+                async with asyncio.timeout(self._shutdown_timeout):
+                    await self.async_set_heater_state(DeviceState.OFF)
+            finally:
+                async with asyncio.timeout(self._shutdown_timeout):
+                    if self._ally_runtime is not None:
+                        await self._coordinator.async_set_control_setpoint_only(MINIMUM_SETPOINT)
+                    else:
+                        await self._coordinator.async_set_control_setpoint(MINIMUM_SETPOINT)
+
+    async def _async_set_hvac_mode(self, hvac_mode: HVACMode, cascade: bool = True) -> None:
         """Set the heating/cooling mode for the devices and update the state."""
+        if self._ally_runtime is not None:
+            if hvac_mode == HVACMode.HEAT and not self._ally_runtime.startup_ready:
+                raise ValueError('PI/HR startup failed; reload or return to room mode')
+            if hvac_mode not in (HVACMode.HEAT, HVACMode.OFF):
+                raise ValueError('Unsupported mode')
+            if hvac_mode == HVACMode.HEAT:
+                if self._hvac_mode == HVACMode.HEAT:
+                    return
+                await self._ally_runtime.prepare_heat()
+            else:
+                self._ally_runtime.invalidate(cancel_startup_resume=True)
+            self._hvac_mode = hvac_mode
+            if hvac_mode == HVACMode.OFF:
+                self._ally_runtime.tripped = None
+                await self._async_shutdown()
+                self._ally_runtime.sent(False, MINIMUM_SETPOINT)
+            self.async_write_ha_state()
+            self.schedule_control_heating_loop()
+            return
+
         # Only allow the hvac mode to be set to heat or off
         if hvac_mode == HVACMode.HEAT:
             self._hvac_mode = HVACMode.HEAT
         elif hvac_mode == HVACMode.OFF:
             self._hvac_mode = HVACMode.OFF
-            await self.async_set_heater_state(DeviceState.OFF)
+            self.async_write_ha_state()
+            await self._async_shutdown()
         else:
             # If an unsupported mode is passed, log an error message
             _LOGGER.error("Unrecognized hvac mode: %s", hvac_mode)
@@ -1055,6 +1207,8 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the preset mode for the thermostat."""
+        if self._ally_runtime is not None:
+            raise ValueError('Room presets are not supported in PI/HR mode')
         # Check if the given preset mode is valid
         if preset_mode not in self.preset_modes:
             raise ValueError(f"Got unsupported preset_mode {preset_mode}. Must be one of {self.preset_modes}")
@@ -1093,6 +1247,8 @@ class SatClimate(SatEntity, ClimateEntity, RestoreEntity):
 
     async def async_set_target_temperature(self, temperature: float, cascade: bool = True) -> None:
         """Set the temperature setpoint for all main climates."""
+        if self._ally_runtime is not None:
+            raise ValueError('Room targets belong to the room controller')
         if self._target_temperature == temperature:
             return
 

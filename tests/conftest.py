@@ -3,7 +3,11 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
-from pytest_homeassistant_custom_component.common import assert_setup_component, MockConfigEntry
+try:
+    from pytest_homeassistant_custom_component.common import assert_setup_component, MockConfigEntry
+except ModuleNotFoundError as exc:
+    if exc.name != 'pytest_homeassistant_custom_component': raise
+    from pytest_homeassistant.common import assert_setup_component, MockConfigEntry
 
 from custom_components.sat.const import DOMAIN, CLIMATE, COORDINATOR
 from custom_components.sat.climate import SatClimate

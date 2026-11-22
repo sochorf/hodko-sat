@@ -482,6 +482,10 @@ class SatDataUpdateCoordinator(DataUpdateCoordinator):
         if self.supports_setpoint_management:
             _LOGGER.info("Set control boiler setpoint to %d°C", value)
 
+    async def async_set_control_setpoint_only(self, value: float) -> None:
+        """Set CS without optional telemetry requests (PI/HR lease writer)."""
+        await self.async_set_control_setpoint(value)
+
     async def async_set_control_hot_water_setpoint(self, value: float) -> None:
         """Control the DHW setpoint temperature for the device."""
         if self.supports_hot_water_setpoint_management:

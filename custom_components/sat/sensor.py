@@ -26,6 +26,13 @@ async def async_setup_entry(_hass: HomeAssistant, _config_entry: ConfigEntry, _a
     """
     Add sensors for the serial protocol if the integration is set to use it.
     """
+    if _config_entry.data.get(CONF_MODE) == 'ally_shadow':
+        from .ally.shadow_sensor import ShadowSensor
+        adapter = _hass.data[DOMAIN][_config_entry.entry_id]['ally_shadow']
+        _async_add_entities([ShadowSensor(adapter, _config_entry.entry_id),
+                             ShadowSensor(adapter, _config_entry.entry_id, water=True)])
+        return
+
     # Some sanity checks before we continue
     if any(key not in _hass.data[DOMAIN][_config_entry.entry_id] for key in (CLIMATE, COORDINATOR)):
         return

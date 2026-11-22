@@ -1,13 +1,11 @@
 import asyncio
 import logging
-import traceback
 
 from homeassistant.components import binary_sensor, climate, number, sensor
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry
 from homeassistant.helpers.storage import Store
-from sentry_sdk import Client, Hub
 
 from .const import (
     DOMAIN,
@@ -35,6 +33,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     This function is called by Home Assistant when the integration is set up with the UI.
     """
+    if entry.data.get(CONF_MODE) == 'ally_shadow':
+        from .ally.shadow_adapter import Adapter, async_reload_shadow_entry
+        adapter = Adapter(hass, entry.options.get('hodko_shadow', entry.data['hodko_shadow']))
+        hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {'ally_shadow': adapter}
+        try:
+            await adapter.start()
+            entry.async_on_unload(entry.add_update_listener(async_reload_shadow_entry))
+            await hass.config_entries.async_forward_entry_setups(entry, ['sensor'])
+        except BaseException:
+            await adapter.stop()
+            hass.data[DOMAIN].pop(entry.entry_id, None)
+            raise
+        return True
+
     # Make sure we have our default domain property
     hass.data.setdefault(DOMAIN, {})
 
@@ -75,9 +87,23 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     This function is called by Home Assistant when the integration is being removed.
     """
 
+    if entry.data.get(CONF_MODE) == 'ally_shadow':
+        adapter = hass.data[DOMAIN][entry.entry_id]['ally_shadow']
+        await adapter.stop()
+        unloaded = await hass.config_entries.async_unload_platforms(entry, ['sensor'])
+        if unloaded:
+            hass.data[DOMAIN].pop(entry.entry_id)
+        return unloaded
+
     _climate = hass.data[DOMAIN][entry.entry_id][CLIMATE]
     _coordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
 
+    stop_error = None
+    try:
+        await _climate.async_close_control()
+    except Exception as error:
+        stop_error = error
+        _LOGGER.error('SAT shutdown failed during unload: %s', error)
     await _coordinator.async_will_remove_from_hass()
 
     unloaded = all(
@@ -97,7 +123,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id)
 
-    return unloaded
+    return unloaded and stop_error is None
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -107,7 +133,8 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     This function is called by Home Assistant when the integration configuration is updated.
     """
     # Unload the entry and its dependent components
-    await async_unload_entry(hass, entry)
+    if not await async_unload_entry(hass, entry):
+        raise RuntimeError("SAT unload failed; refusing to start another controller")
 
     # Set up the entry again
     await async_setup_entry(hass, entry)
@@ -206,34 +233,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+
 def initialize_sentry(hass: HomeAssistant):
-    """Initialize Sentry synchronously in an offloaded executor job."""
-
-    def exception_filter(event, hint):
-        """Filter events to send only SAT-related exceptions to Sentry."""
-        exc_info = hint.get("exc_info")
-
-        if exc_info:
-            _, _, exc_traceback = exc_info
-            stack = traceback.extract_tb(exc_traceback)
-
-            # Check if the exception originates from the SAT custom component
-            if any("custom_components/sat/" in frame.filename for frame in stack):
-                return event
-
-        # Ignore exceptions not related to SAT
-        return None
-
-    # Configure the Sentry client
-    client = Client(
-        traces_sample_rate=1.0,
-        before_send=exception_filter,
-        dsn="https://216fc0a74c488abdb79f9839fb7da33e@o4508432869621760.ingest.de.sentry.io/4508432872898640",
-    )
-
-    # Bind the Sentry client to the Sentry hub
-    hub = Hub(client)
-    hub.bind_client(client)
-
-    # Store the hub in Home Assistant's data for later use
-    hass.data[DOMAIN][SENTRY] = client
+    """Keep the legacy option harmless; never report to upstream Sentry."""
+    _LOGGER.warning("External error reporting is disabled in the Hodko fork")

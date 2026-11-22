@@ -1,5 +1,6 @@
 """Adds config flow for SAT."""
 import asyncio
+import json
 import logging
 from typing import Optional, Any
 
@@ -47,6 +48,8 @@ class SatFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry):
+        if config_entry.data.get(CONF_MODE) == 'ally_shadow':
+            return ShadowOptionsFlow()
         return SatOptionsFlowHandler(config_entry)
 
     @callback
@@ -57,6 +60,7 @@ class SatFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, _user_input: dict[str, Any] | None = None):
         """Handle user flow."""
         menu_options = [
+            "ally_shadow",
             "mosquitto",
             "esphome",
             "serial",
@@ -67,6 +71,23 @@ class SatFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             menu_options.append("simulator")
 
         return self.async_show_menu(step_id="user", menu_options=menu_options)
+
+    async def async_step_ally_shadow(self, user_input=None):
+        from .ally.shadow_adapter import validate
+        errors = {}
+        if user_input is not None:
+            try:
+                settings = validate(json.loads(user_input['settings']))
+            except (ValueError, TypeError, KeyError, AttributeError):
+                errors['base'] = 'invalid_shadow_settings'
+            else:
+                await self.async_set_unique_id('hodko_ally_shadow')
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(title='SAT Ally – pozorování', data={
+                    CONF_MODE: 'ally_shadow', 'hodko_shadow': settings})
+        return self.async_show_form(step_id='ally_shadow', data_schema=vol.Schema({
+            vol.Required('settings', default=(user_input or {}).get('settings','')):
+                selector.TextSelector(selector.TextSelectorConfig(multiline=True))}), errors=errors)
 
     async def async_step_dhcp(self, discovery_info: DhcpServiceInfo):
         """Handle dhcp discovery."""
@@ -545,7 +566,10 @@ class SatFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self.data[CONF_MINIMUM_SETPOINT] = overshoot_protection_value
 
 
-class SatOptionsFlowHandler(config_entries.OptionsFlow):
+from .ally.mode_flow import ModeFlow
+
+
+class SatOptionsFlowHandler(ModeFlow, config_entries.OptionsFlow):
     """Config flow options handler."""
 
     def __init__(self, config_entry: ConfigEntry):
@@ -554,6 +578,10 @@ class SatOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(self, _user_input: dict[str, Any] | None = None):
         menu_options = ["general", "presets", "system_configuration"]
+        if self._config_entry.data.get(CONF_MODE) == MODE_MQTT_OPENTHERM:
+            menu_options.append("control_mode")
+            if self._config_entry.options.get("hodko_control_mode") == "ally_demand":
+                menu_options.append("operating_limits")
 
         if self.show_advanced_options:
             menu_options.append("advanced")
@@ -760,3 +788,12 @@ class SatOptionsFlowHandler(config_entries.OptionsFlow):
         options.update(self._options)
 
         return options
+
+
+class ShadowOptionsFlow(config_entries.OptionsFlow):
+    async def async_step_init(self, user_input=None):
+        return await self.async_step_shadow_limits(user_input)
+
+    async def async_step_shadow_limits(self, user_input=None):
+        from .ally.mode_flow import shadow_limits_flow
+        return await shadow_limits_flow(self, user_input)

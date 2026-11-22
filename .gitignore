@@ -1,1 +1,12 @@
-.idea
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+.coverage*
+coverage.xml
+hodko-results-*.xml
+*.log
+.idea/
+.DS_Store
+/tests/testing_config/

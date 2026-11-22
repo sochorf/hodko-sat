@@ -1,0 +1,70 @@
+--- a/flame.py
++++ b/flame.py
+@@ -93,6 +93,10 @@
+         self._on_deltas_window: Deque[Tuple[float, float]] = deque()
+         self._on_durations_window: Deque[Tuple[float, float]] = deque()
+ 
++        # Time a continuous unsatisfied demand, not the preceding idle period.
++        self._waiting_for_flame_since: Optional[float] = None
++        self._waiting_for_flame_kind: Optional[str] = None
++
+         # Health
+         self._health_status: str = FlameStatus.INSUFFICIENT_DATA
+ 
+@@ -245,7 +249,6 @@
+             return
+ 
+         last_on_seconds = self._latest_on_time_seconds if (state.flame_active and self._flame_on_monotonic) else 0.0
+-        last_off_seconds = (now - self._flame_off_monotonic) if (not state.flame_active and self._flame_off_monotonic) else 0.0
+ 
+         cycles_per_hour = self._cycles_per_hour(now)
+         duty_ratio = self._duty_ratio_last_window(now)
+@@ -254,6 +257,17 @@
+         domestic_hot_water_active = bool(state.hot_water_active)
+         heating_demand = bool(state.is_active) or (state.status in self._HEATING_STATUSES)
+         modulating_boiler = (state.relative_modulation_level is not None and isinstance(state.relative_modulation_level, (int, float)))
++
++        waiting_kind = "dhw" if domestic_hot_water_active else "ch" if heating_demand else None
++        if state.flame_active or state.status in self._TRANSIENT_STATUSES:
++            waiting_kind = None
++
++        if waiting_kind is None:
++            self._waiting_for_flame_since = None
++        elif self._waiting_for_flame_since is None or waiting_kind != self._waiting_for_flame_kind:
++            self._waiting_for_flame_since = now
++        self._waiting_for_flame_kind = waiting_kind
++        waiting_seconds = now - self._waiting_for_flame_since if self._waiting_for_flame_since is not None else 0.0
+ 
+         # Thin history: still allow stuck checks, avoid cycling judgments
+         if sample_count < self.MIN_ON_SAMPLES_FOR_HEALTH:
+@@ -266,8 +280,11 @@
+                 return
+ 
+             timeout = self.MAX_DOMESTIC_HOT_WATER_IDLE_OFF_SECONDS if domestic_hot_water_active else self.STUCK_OFF_SECONDS
+-            if (not state.flame_active) and last_off_seconds > timeout and state.status not in self._TRANSIENT_STATUSES:
++            if (not state.flame_active) and waiting_seconds > timeout and state.status not in self._TRANSIENT_STATUSES:
+                 self._health_status = FlameStatus.STUCK_OFF
++            else:
++                # Always clear a previous alarm when its condition no longer holds.
++                self._health_status = FlameStatus.HEALTHY
+ 
+             return
+ 
+@@ -282,7 +299,7 @@
+ 
+         # Domestic hot water: allow continuous flame; only stuck-off if off too long (and not transient)
+         if domestic_hot_water_active:
+-            if (not state.flame_active) and last_off_seconds > self.MAX_DOMESTIC_HOT_WATER_IDLE_OFF_SECONDS and state.status not in self._TRANSIENT_STATUSES:
++            if (not state.flame_active) and waiting_seconds > self.MAX_DOMESTIC_HOT_WATER_IDLE_OFF_SECONDS and state.status not in self._TRANSIENT_STATUSES:
+                 self._health_status = FlameStatus.STUCK_OFF
+             else:
+                 self._health_status = FlameStatus.HEALTHY
+@@ -290,7 +307,7 @@
+             return
+ 
+         # Space heating demand
+-        if (not state.flame_active) and last_off_seconds > self.STUCK_OFF_SECONDS and state.status not in self._TRANSIENT_STATUSES:
++        if (not state.flame_active) and waiting_seconds > self.STUCK_OFF_SECONDS and state.status not in self._TRANSIENT_STATUSES:
+             self._health_status = FlameStatus.STUCK_OFF
+             return
+ 

@@ -188,6 +188,16 @@ class SatOpenThermMqttCoordinator(SatMqttCoordinator):
 
         await super().async_set_control_setpoint(value)
 
+    async def async_set_control_setpoint_only(self, value: float) -> None:
+        """Publish only CS; PM25 is not an acknowledgement of this command.
+
+        PI/HR already reads age-checked boiler telemetry independently. An
+        optional PM timeout must not invalidate a successful CS publication.
+        The room PID's legacy CS+PM sequence above remains unchanged.
+        """
+        await self._publish_command(f"CS={value}")
+        await super().async_set_control_setpoint(value)
+
     async def async_set_control_hot_water_setpoint(self, value: float) -> None:
         await self._publish_command(f"SW={value}")
 

@@ -1,0 +1,57 @@
+# View fragment: merge into Topení views only with the shadow entry deployment.
+# Verify actual registry IDs before adding. No service/action controls.
+title: Pozorování Ally
+path: ally-pozorovani
+icon: mdi:eye-outline
+cards:
+  - type: markdown
+    content: |-
+      ## Návrh řízení podle hlavic
+
+      Pouze pozorování. Kotel nadále řídí stávající SAT.
+      Návrh vody není odeslaný příkaz; neobsahuje simulaci rampy ani potvrzení kotle.
+      Topná sezóna a pokojová povolení omezují zahrnuté požadavky.
+  - type: entities
+    title: Pozorovací režim
+    show_header_toggle: false
+    entities:
+      - entity: sensor.sat_ally_shadow_status
+        name: Výsledek pozorování
+      - entity: sensor.sat_ally_shadow_water
+        name: Navržená teplota vody
+  - type: markdown
+    title: Výsledek a dostupnost
+    content: |-
+      {% set e = 'sensor.sat_ally_shadow_status' %}
+      {% set labels = {'heat':'Požadavek na topení', 'off':'Bez požadavku', 'unknown':'Nedostatek ověřených dat', 'degraded':'Požadavek při neúplných datech'} %}
+      **{{ labels.get(states(e), 'Pozorování není dostupné') }}**
+
+      Důvod: {{ state_attr(e, 'reason') or '—' }}
+
+      MQTT: {{ 'připojeno' if state_attr(e, 'mqtt_connected') else 'nepotvrzeno' }}
+      {% set t = state_attr(e, 'evaluated_at') %}
+      Poslední výpočet: {{ (t | timestamp_custom('%d. %m. %H:%M:%S', true)) if t else '—' }}
+  - type: markdown
+    title: Skutečná hlášení hlavic
+    content: |-
+      {% set heads = state_attr('sensor.sat_ally_shadow_status', 'heads') -%}
+      | Hlavice | Povolení | PI | Stáří PI | HR | Stáří HR |
+      |---|---|---|---|---|---|
+      {% if heads is mapping -%}
+      {% for name, h in heads.items() -%}
+      | {{ name }} | {{ h.eligible }} | {{ h.pi if h.pi is not none else '—' }} | {{ (h.pi_age_seconds ~ ' s') if h.pi_age_seconds is not none else '—' }} | {{ {'true':'ano','false':'ne'}.get(h.heat_required | string | lower, '—') }} | {{ (h.heat_required_age_seconds ~ ' s') if h.heat_required_age_seconds is not none else '—' }} |
+      {% endfor -%}
+      {% else %}
+      Čeká na skutečná hlášení PI/HR.
+      {% endif %}
+
+      Opakovaná hodnota bez nového reportu není nové měření. Neznámý údaj není nula.
+  - type: markdown
+    title: Důvody podle hlavic
+    content: |-
+      {% set reasons = state_attr('sensor.sat_ally_shadow_status', 'reasons') %}
+      {% if reasons is mapping %}
+      {% for name, reason in reasons.items() %}
+      - {{ name }}: {{ reason }}
+      {% endfor %}
+      {% else %}—{% endif %}

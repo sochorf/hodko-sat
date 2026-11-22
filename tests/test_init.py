@@ -1,7 +1,11 @@
 """Test setup process."""
 
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+try:
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+except ModuleNotFoundError as exc:
+    if exc.name != 'pytest_homeassistant_custom_component': raise
+    from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.sat import async_reload_entry
 from custom_components.sat.const import DOMAIN

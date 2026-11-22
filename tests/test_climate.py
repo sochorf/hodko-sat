@@ -5,7 +5,11 @@ from homeassistant.components.climate import HVACMode
 from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
 from homeassistant.components.template import DOMAIN as TEMPLATE_DOMAIN
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+try:
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+except ModuleNotFoundError as exc:
+    if exc.name != 'pytest_homeassistant_custom_component': raise
+    from pytest_homeassistant.common import MockConfigEntry
 
 from custom_components.sat.climate import SatClimate
 from custom_components.sat.const import *

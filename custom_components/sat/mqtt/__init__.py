@@ -22,6 +22,7 @@ class SatMqttCoordinator(SatDataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, device_id: str, config_data: Mapping[str, Any], options: Mapping[str, Any] | None = None) -> None:
         super().__init__(hass, config_data, options)
 
+        self._mqtt_unsubs = []
         self._device_id: str = device_id
         self._topic: str = config_data.get(CONF_MQTT_TOPIC)
         self._store: Store = Store(hass, STORAGE_VERSION, snake_case(f"{self.__class__.__name__}_{device_id}"))
@@ -37,17 +38,20 @@ class SatMqttCoordinator(SatDataUpdateCoordinator):
         await mqtt.async_wait_for_mqtt_client(self.hass)
 
         for key in self.get_tracked_entities():
-            await mqtt.async_subscribe(
+            self._mqtt_unsubs.append(await mqtt.async_subscribe(
                 self.hass,
                 self._get_topic_for_subscription(key),
                 self._create_message_handler(key)
-            )
+            ))
 
         await self.boot()
 
         await super().async_added_to_hass()
 
     async def async_will_remove_from_hass(self) -> None:
+        for unsub in self._mqtt_unsubs:
+            unsub()
+        self._mqtt_unsubs.clear()
         # Save the updated data to persistent storage
         await self._save_data()
 
@@ -115,3 +119,5 @@ class SatMqttCoordinator(SatDataUpdateCoordinator):
             await asyncio.sleep(wait_time)
         except Exception as error:
             _LOGGER.error("Failed to publish MQTT command. Error: %s", error)
+            if getattr(self, '_hodko_strict_publish', False):
+                raise

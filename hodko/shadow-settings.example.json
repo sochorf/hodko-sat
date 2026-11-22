@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "topic": "example/reports/events",
+  "monitor_url": "http://gateway.invalid/api/v2/otgw/otmonitor",
+  "enabled_entity": "binary_sensor.heating_allowed",
+  "members": {
+    "0x0000000000020000": {
+      "name": "head_0",
+      "zone": "ROOM_0",
+      "eligible_entity": "binary_sensor.head_0_allowed"
+    },
+    "0x0000000000020001": {
+      "name": "head_1",
+      "zone": "ROOM_1",
+      "eligible_entity": "binary_sensor.head_1_allowed"
+    },
+    "0x0000000000020002": {
+      "name": "head_2",
+      "zone": "ROOM_2",
+      "eligible_entity": "binary_sensor.head_2_allowed"
+    },
+    "0x0000000000020003": {
+      "name": "head_3",
+      "zone": "ROOM_3",
+      "eligible_entity": "binary_sensor.head_3_allowed"
+    },
+    "0x0000000000020004": {
+      "name": "head_4",
+      "zone": "ROOM_4",
+      "eligible_entity": "binary_sensor.head_4_allowed"
+    },
+    "0x0000000000020005": {
+      "name": "head_5",
+      "zone": "ROOM_5",
+      "eligible_entity": "binary_sensor.head_5_allowed"
+    },
+    "0x0000000000020006": {
+      "name": "head_6",
+      "zone": "ROOM_6",
+      "eligible_entity": "binary_sensor.head_6_allowed"
+    },
+    "0x0000000000020007": {
+      "name": "head_7",
+      "zone": "ROOM_7",
+      "eligible_entity": "binary_sensor.head_7_allowed"
+    },
+    "0x0000000000020008": {
+      "name": "head_8",
+      "zone": "ROOM_8",
+      "eligible_entity": "binary_sensor.head_8_allowed"
+    },
+    "0x0000000000020009": {
+      "name": "head_9",
+      "zone": "ROOM_9",
+      "eligible_entity": "binary_sensor.head_9_allowed"
+    },
+    "0x000000000002000a": {
+      "name": "head_10",
+      "zone": "ROOM_10",
+      "eligible_entity": "binary_sensor.head_10_allowed"
+    },
+    "0x000000000002000b": {
+      "name": "head_11",
+      "zone": "ROOM_11",
+      "eligible_entity": "binary_sensor.head_11_allowed"
+    }
+  },
+  "policy": {
+    "ttl": 3900,
+    "minimum_water": 41,
+    "maximum_water": 50,
+    "water_warm": 41,
+    "water_cold": 45,
+    "boost": 5
+  }
+}

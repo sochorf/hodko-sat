@@ -1,0 +1,37 @@
+name: Hodko SAT offline regression
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [baseline, ha-2026.11.2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.8'
+      - run: python -m pip install uv==0.9.4
+      - run: |
+          python -m venv .venv
+          if [ '${{ matrix.profile }}' = baseline ]; then
+            uv pip sync hodko/requirements.lock --python .venv/bin/python --require-hashes
+          else
+            uv pip sync hodko/requirements-ha-2026.11.lock --python .venv/bin/python --require-hashes
+            uv pip install --python .venv/bin/python --require-hashes --no-deps -r hodko/requirements-ha112.txt
+          fi
+      - run: .venv/bin/python scripts/check_release.py
+      - run: .venv/bin/python scripts/run_tests.py --profile ${{ matrix.profile }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sat-${{ matrix.profile }}
+          path: hodko-results-${{ matrix.profile }}-all.xml
