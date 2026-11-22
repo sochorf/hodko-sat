@@ -1,13 +1,26 @@
-# Controlled update and return — 4.2.1.51 ↔ 5.0.0.1
+# Controlled update and return — 4.2.1.51 ↔ 5.0.0.2
 
 Preparation only. Publication is not authorization to install, restart or change
 live control. Marketplace remains the sole owner of `sochorf/hodko-sat`, domain
 `sat`. Do not repeat owner repair, remove configurations, deploy SAT from the host
 configuration Git repository or create another controller for the same boiler.
 
+## Repair of a failed 5.0.0.1 start
+
+5.0.0.1 can report a loaded config entry while climate and shadow are unavailable
+with a three-versus-two-argument platform setup error. Confirm the exact files
+and log first. Repeating a restart does not repair the import collision.
+The .2 candidate changes only compatibility platform initialization and version
+metadata; policy, transport, configuration schema and saved limits are unchanged.
+Preserve the verified backup from before .1 and take a new diagnostic snapshot;
+do not replace the known working backup with the failed state. The standard
+Marketplace update to .2 still requires publication and installation approval.
+If heat must be recovered sooner, the existing .51 rollback remains available
+with separate authorization. Do not add a native SAT5 entry as a workaround.
+
 ## Before a separately authorized installation
 
-1. Verify the published 5.0.0.1 tag, exact commit, both hosted CI profiles and
+1. Verify the published 5.0.0.2 tag, exact commit, both hosted CI profiles and
    complete source archive using [PUBLISHING.md](PUBLISHING.md). Require supported
    HA ≥2026.11.2. Record the actual installed version and file inventory afresh.
 2. Take and verify a fresh full HA backup, including current SAT files,
@@ -28,10 +41,13 @@ configuration Git repository or create another controller for the same boiler.
    the one separately agreed HA restart. No Z2M/OTGW restart, telemetry transport
    switch, manual parameter rewrite or routine manual OFF/HEAT is required.
    A HA restart is a service interruption; uninterrupted heat is not guaranteed.
-2. Verify loaded version **5.0.0.1** and all **161** component hashes, including
+2. Verify loaded version **5.0.0.2** and all **161** component hashes, including
    `compat`. Compare entries/registries/options to the fresh backup: existing
    version10 entries, identities and saved members must remain unchanged.
    No new native controller or water-heater writer may own these entries.
+   Require actual climate, sensor, number (if supported) and binary-sensor
+   entities and both shadow sensors, not merely config-entry status loaded.
+   Reject any platform setup error or unavailable SAT/shadow.
 3. Verify automatic HEAT with season/global enabled, startup_ready and no fault.
    Check original PI/HR timestamps and remaining validity in active SAT and
    shadow. One eligible demanding zone suffices; do not wait for all heads.

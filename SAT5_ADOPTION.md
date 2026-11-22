@@ -1,7 +1,9 @@
-# SAT 5 adoption — offline candidate 5.0.0.1
+# SAT 5 adoption and startup repair — candidate 5.0.0.2
 
-Prepared on 22 November 2026. **Not published or deployed.** The running release
-remains 4.2.1.51. No HA, MQTT, OTGW, radiator, DHW or Spook settings were changed.
+Adoption prepared on 22 November 2026; startup repair prepared on 23 November.
+**5.0.0.1 was published and failed its live compatibility-platform startup.**
+The .2 candidate is offline only. Its narrow initialization fix and cold-process
+regressions are described in RELEASE_NOTES.md; no control policy is changed.
 
 ## Source and scope
 
@@ -10,8 +12,8 @@ remains 4.2.1.51. No HA, MQTT, OTGW, radiator, DHW or Spook settings were change
 - Compatibility source: published Hodko 4.2.1.51, commit
   `d96348f2a3419baf841c3ce5ddb4bfcb6213ab78`.
 - `release-policy.json` pins the component inventory, tests, original sources
-  and preserved core hashes. Local publication preflight is complete; publishing
-  remains a separate explicitly authorized action.
+  and preserved core hashes. The .2 publication guard remains false; publishing
+  and installation remain separately authorized actions.
 
 This is an explicit two-policy package, **not conversion of PI/HR into SAT5 room
 PID**. Exactly one policy is constructed per entry. SAT5 is available for new
@@ -103,7 +105,7 @@ relocation and unregistered legacy config-flow class. See RELEASE_NOTES.md. CI c
 CI was run in this task. These tests do not prove live startup, MQTT delivery,
 hydraulics, a natural DHW return or complete disaster restore.
 
-## Final committed-package acceptance — 22 November 2026
+## Historical .1 committed-package acceptance — 22 November 2026
 
 Reviewed code/test commit: `e7c2ecd0084f0778265a6ea5920890fce9bfd6d2`.
 All 161 component and 71 test files match the earlier reviewed candidate exactly.
@@ -119,6 +121,16 @@ No live HA read/write, deployment, tag, push or release occurred in this accepta
 Only publication documentation/readiness metadata is prepared beyond the reviewed
 code commit. Hosted CI must run after an explicitly authorized push; the future
 published 5.0.0.1 archive must be checked before release/install acceptance.
+
+## Startup regression discovered after .1 deployment
+
+The old conftest imports compat.climate before the test body. That preloading
+masked the package-level HA climate/sensor/number/binary_sensor aliases. A fresh
+HA process instead resolved public platform forwarding to HA component setup.
+The .2 tests use subprocesses with --noconftest and real HA platform creation;
+they also cover shadow-first setup and require the dependent active diagnostics.
+Only compat initialization plus version metadata change from .1. No preserved
+core hashes are updated to bless this repair. .51 remains the return target.
 
 ## Maintenance decision
 

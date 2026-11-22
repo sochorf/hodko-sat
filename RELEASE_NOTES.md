@@ -1,53 +1,56 @@
-# Hodko SAT 5.0.0.1
+# Hodko SAT 5.0.0.2 — compatibility startup repair
 
-Combines upstream SAT **5.0.0** with the isolated Hodko **.51 PI/HR** controller.
-**Existing installations retain their controller.** This release does not switch
-existing PI/HR or shadow entries to the native SAT5 room PID/PWM.
+Offline candidate, not published or deployed. This repairs the failed clean start
+of existing PI/HR and shadow entries in published **5.0.0.1**.
 
-## Changes
+## What changes
 
-- Existing version10 and Hodko PI/HR/shadow entries route to the preserved `compat`
-  adapter. Configuration schema, entity identities, original-time report cache,
-  saved permissions and water limits remain unchanged.
-- The portable decision kernel and operating machine are byte-identical to .51.
-  Startup/HEAT recovery, command confirmation, CS keepalive/retry, suppression of
-  redundant OFF/CS10, counter wrap and DHW return/mixing retain their behavior.
-- New standard version13 configurations use SAT5. Its final CS clamp,
-  missing-return-temperature fallback and propagation of failed MQTT publication
-  are corrected. Native policy still differs from Hodko and requires a separate
-  review before replacing an existing house controller.
-- Shared services target their own entity; PI/HR rejects room PID/PWM/preheat
-  operations. A native entry cannot take the same configured gateway identifier
-  already owned by an enabled compatibility entry. Aliases for one physical
-  gateway still require operator review.
-- No automatic DHW ownership change, telemetry transport switch, upstream Sentry
-  reporting or blueprint activation. Missing new Czech labels fall back to English.
+- Remove HA platform module aliases from the `compat` package. They shadowed the
+  actual SAT submodules, routing platform setup to a two-argument HA function
+  instead of the three-argument SAT platform. The resulting TypeError prevented
+  climate, sensor, number and binary-sensor creation.
+- Initialize the compatibility climate platform before its dependent diagnostics.
+  When shadow loaded the sensor platform first, parallel active setup could skip
+  active sensors before the climate instance existed.
+- Add fresh-process startup regressions for active only, shadow only, and both
+  orders. They execute real HA forwarding and entity registration without eager
+  imports from the legacy conftest. Network I/O is isolated and boiler writes go
+  only to the existing fake coordinator.
 
-## Compatibility and validation
+The complete integration delta from .1 is **one initialization file plus manifest
+version metadata**. PI/HR policy, original timestamps/TTL, the operating machine,
+command confirmation/retries/keepalive, DHW return/mixing, native SAT5 code and
+configuration schema are unchanged. A saved 55 °C limit stays 55. No new writer,
+settings migration, transport change or DHW ownership change is introduced.
 
-Minimum supported Home Assistant: **2026.11.2**. Offline suites on Python 3.14.8:
-**1,493 passed +53 subtests** on HA 2026.11.2; **1,475 +53** on the historical
-HA 2026.10.2 profile. Each has one expected duplicate-source skip, covered by fixed
-core hashes and the preserved historical golden traces. No test failures/errors.
+## Evidence and limits
 
-Tests use disabled sockets and fake HA/boiler interfaces, with migration/identity,
-service isolation, native SAT5 and actual Marketplace update/downgrade coverage.
-Release publication also requires successful hosted CI on the exact tag and
-verification of all **161** integration files in the GitHub source archive.
-Offline results do not certify live startup, hydraulic operation or a full restore.
+The four final cold-start cases fail against .1 with the live TypeError. Fixing
+only the import leaves one failure when shadow starts first (missing active
+sensors); the complete repair passes all four. Tests check actual entities,
+automatic HEAT intent, unchanged version10/settings, shadow read-only behavior,
+and no boiler enable without fresh evidence. A loaded config entry alone is not
+accepted as success. Complete socket-disabled suites passed: **1,497 tests
++53 subtests on HA2026.11.2**, **1,479 +53 on historical HA2026.10.2**, with one
+expected duplicate-source skip per profile and no failures/errors. These include
+actual Marketplace downgrade to the exact 80-file .51 tree. The reviewed
+inventory covers 161 component and 73 test files. Hosted CI for .2 is pending.
 
-## Update and rollback
+Minimum supported HA remains **2026.11.2**, Python 3.14.8. Offline tests do not
+certify the deployed installation, actual flame, hydraulic heat or live DHW return.
+The .1 test suite's eager platform imports masked this cold-start fault; its old
+green CI is not evidence that the faulty release starts correctly.
 
-Use the existing fork through Marketplace after a fresh verified backup and a
-separately agreed HA restart. Existing version10 entries retain the .51 policy;
-no integration removal or Marketplace owner repair is needed. A saved 55 °C limit
-stays 55; this release does not write the physical OTGW maximum.
+## Installation and fallback
 
-Return through the same repository to **4.2.1.51**, restoring its exact 80-file
-component. Unchanged version10 configurations are preserved. Newly created native
-version13 entries or unrelated registry changes require their own backup/return
-plan and are not covered by a code-only downgrade.
+After separate publication/install approval, update the existing Marketplace fork
+and perform the agreed HA restart. Verify every component file, actual active and
+shadow entities, preserved inputs/limits, fresh command evidence and real heat.
+Do not remove configurations, add a native SAT5 controller or redeploy through
+ha-config. Keep the verified pre-.1 backup.
 
-See [source and policy details](SAT5_ADOPTION.md) and
-[controlled update and rollback](MIGRATION.md). Publishing this release does not
-install it or authorize changes to the boiler or independent DHW automation.
+Rollback to **4.2.1.51** remains available through the same Marketplace repository:
+existing version10 configuration and identities are unchanged. Newly created
+native version13 entries need their own return plan. Published tags and archives
+must not be overwritten. See [migration and return](MIGRATION.md) and
+[publication gates](PUBLISHING.md).

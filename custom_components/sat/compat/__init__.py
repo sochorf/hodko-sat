@@ -1,7 +1,6 @@
 import asyncio
 import logging
 
-from homeassistant.components import binary_sensor, climate, number, sensor
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry
@@ -24,7 +23,9 @@ from .services import async_register_services
 from .util import get_climate_entities
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
-PLATFORMS = [climate.DOMAIN, sensor.DOMAIN, number.DOMAIN, binary_sensor.DOMAIN]
+# Do not bind HA platform modules under the names of our compat submodules.
+# Public platform routing imports those submodules on a cold HA start.
+PLATFORMS = ["climate", "sensor", "number", "binary_sensor"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
@@ -68,8 +69,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # Making sure everything is loaded
     await hass.data[DOMAIN][entry.entry_id][COORDINATOR].async_setup()
 
-    # Forward entry setup for used platforms
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Diagnostics depend on the climate instance. A shadow entry may already
+    # have loaded the sensor platform, so parallel forwarding can skip it.
+    await hass.config_entries.async_forward_entry_setups(entry, ["climate"])
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS[1:])
 
     # Register the services
     # Entity services are registered once by the public climate platform.

@@ -26,8 +26,8 @@ from homeassistant.components.update.entity import _version_is_newer
 
 ROOT = Path(__file__).resolve().parents[1]
 DOMAIN = "sat"
-FIRST = "5.0.0.1"
-NEXT = "5.0.0.2"  # Synthetic local fixture only; never published.
+FIRST = "5.0.0.2"
+NEXT = "5.0.0.3"  # Synthetic local fixture only; never published.
 COMPONENT = ROOT / "custom_components" / DOMAIN
 
 

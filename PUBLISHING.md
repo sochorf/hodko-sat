@@ -1,86 +1,67 @@
-# Publication plan — Hodko SAT 5.0.0.1
+# Publication preparation — Hodko SAT 5.0.0.2
 
-Prepared on 22 November 2026. **No push, tag, release or installation is authorized
-by this document.** Publication and installation require separate instructions.
-The reviewed code/test commit is `e7c2ecd0084f0778265a6ea5920890fce9bfd6d2`.
-The final release commit must also contain this publication preparation.
+Prepared on 23 November 2026. **Offline repair only. No publication, installation,
+restart or live control change is authorized by this document.** User commits the
+code. `publication_ready=false` remains the technical publication guard.
 
-## Scope and evidence
+## Scope and rollback
 
-- Existing destination: `sochorf/hodko-sat`, branch `codex/hodko-sat`.
-  Manifest and intended tag: **5.0.0.1**; minimum HA: **2026.11.2**.
-- Existing version10 / PI/HR / shadow entries keep the .51 compatibility policy.
-  New native version13 entries use SAT5. This is not a change of boiler policy.
-- The code commit's local source archive contains 269 files, including all
-  161 reviewed component files and 71 test files; hashes match the working tree
-  and release inventory. Documentation/readiness changes must leave those
-  component and test hashes unchanged.
-- The published rollback archive **4.2.1.51** was downloaded and checked against
-  `d96348f2a3419baf841c3ce5ddb4bfcb6213ab78`: all 136 files match, including the
-  exact 80-file component. Keep that release and annotated tag unchanged.
-- Public GitHub metadata at preparation time: branch still at `d96348f`, latest
-  stable 4.2.1.51; tag and release 5.0.0.1 absent. Recheck before publication.
-- Final exact-commit offline reruns: HA2026.11.2 **1,493 tests +53 subtests**
-  (also in a fresh environment from the CI dependency locks); historical
-  HA2026.10.2 **1,475 +53**. One expected duplicate-source skip in each, no
-  failures/errors. After readiness metadata changed, all **18 Marketplace
-  tests** passed again, including publication checks and actual .51 file return.
-- `publication_ready=true` records completed **local technical preparation**.
-  It neither publishes anything nor grants permission to push, tag or install.
-  Hosted CI and the eventual GitHub source archive remain publication gates.
+- Destination remains `sochorf/hodko-sat`, branch `codex/hodko-sat`, domain `sat`.
+  Candidate version/tag **5.0.0.2**, minimum HA **2026.11.2**.
+- Base is published .1 at `64494198e19a3bca9a093d3079b9e1e0dfb2f360`.
+  Only `compat/__init__.py` and manifest version differ in the 161-file component.
+  The nine pinned preserved Ally files and every other component file are equal.
+- Existing version10 settings/identities, source times, 55 °C, independent DHW and
+  disabled Spook are preserved. No change to upstream native SAT5 policy.
+- Four isolated startup regressions expose the .1 import collision; shadow-first
+  additionally exposes the dependent-sensor setup order. Both are repaired.
+- Keep published **4.2.1.51**, commit
+  `d96348f2a3419baf841c3ce5ddb4bfcb6213ab78`, as fallback. Its source archive was
+  verified before .1 installation: all 136 files, including 80 component files.
+  The unchanged version10 schema supports a code-only return. No new version13
+  entries may be silently introduced. Keep the verified pre-upgrade backup.
 
-Do not include a push of the host HA configuration repository: its pending commit
-also contains unrelated scheduler changes and can deploy automatically. Marketplace
-already owns SAT. No owner repair, integration removal or Git handoff is needed.
+## Local acceptance
 
-## Final local preflight
+Run the complete pinned `ha-2026.11.2` and historical `baseline` profiles with
+`scripts/run_tests.py`. Require all tests, including fresh-process startup and
+actual Marketplace update/failed-install/downgrade tests. Review full results;
+process launch, config entry loaded, or an old CI pass is insufficient.
+Run `scripts/check_release.py` for reviewed component/test hashes, preserved core,
+licenses and private-data checks. Regression inventory includes the isolated child
+cases; the ordinary suite launches each in a fresh interpreter with sockets off.
+Record final test counts and commit SHA before requesting publication.
 
-1. Commit this mixed publication metadata/documentation preparation. Require a
-   clean tree and record the full final SHA. Review changes since `e7c2ecd`:
-   only the reviewed publication files may differ. If code, tests, dependency
-   locks or CI change, review and rerun the affected checks before proceeding.
-2. Run `python scripts/check_release.py --for-publication --tag 5.0.0.1`.
-   This validates version, destination, all component/test hashes, preserved
-   core hashes, licenses and the built-in private-data checks.
-3. Run the pinned `baseline` and `ha-2026.11.2` profiles in
-   `.github/workflows/tests.yml`. The baseline is historical compatibility,
-   not a lower supported HA version. Check full results, not only process start.
-4. Create a local `git archive` from that exact SHA. Check every published path
-   against Git, the 161-file inventory, licenses and `hacs.json`. Review that no
-   credentials, device maps, logs, caches or local artifacts enter the archive.
+Current supported-profile result: **1,497 tests +53 subtests passed** on
+HA2026.11.2, one expected duplicate-source skip, no failures/errors. This includes
+all 18 Marketplace cases and four cold-process starts. Historical HA2026.10.2:
+**1,479 tests +53 subtests passed**, one expected duplicate-source skip, no
+failures/errors. Local integrity checks pass, including all 161 component files
+and 73 test files. No hosted CI is claimed for .2. The first local full run
+exposed empty untracked directories left from the old checkout in a Git-handoff
+fixture; removing only those empty remnants made the unchanged test pass.
+The baseline uses the pinned SAT5 test extras, as prescribed by its CI setup.
 
-## Later explicitly authorized publication
+## Later authorized publication
 
-1. Recheck repository identity, existing tags/releases and remote branch. Keep
-   upstream pushes disabled. Push only the reviewed `codex/hodko-sat` branch,
-   without force, mirror, all-tags, upstream sync, merge or rebase. If the remote
-   advanced, stop and inspect it; do not overwrite another change.
-2. Require successful hosted CI for **both profiles on the exact final SHA**.
-   A queued, skipped or cancelled job is not a pass. Inspect JUnit results and
-   confirm no unexpected deselection, failure or skip.
-3. Create annotated tag **5.0.0.1** on that same SHA; push only this tag. If it
-   already exists, verify its peeled SHA rather than replacing it. Require
-   successful tag CI, including `--for-publication --tag 5.0.0.1`.
-4. Download the GitHub source archive for that tag. Compare every extracted
-   file with `git archive` for the pinned SHA and all 161 component hashes.
-   Compare content, not only ZIP bytes: GitHub may regenerate the container.
-5. Prepare a draft titled **Hodko SAT 5.0.0.1** using RELEASE_NOTES.md. Convert
-   relative documentation links to tagged GitHub links. Do not generate notes
-   from unrelated upstream history or attach a second hand-built payload.
-6. After CI/archive/notes acceptance, publish as stable/latest if that is within
-   the explicit publication authorization. Verify tag SHA, version, release
-   URLs and latest metadata. Publishing makes the update discoverable; it is
-   not permission to install it, restart HA or alter installed settings.
+1. Require the user-committed clean candidate, exact SHA, reviewed diff against
+   .1 and successful complete offline suites. Recheck remote branch/tag/release.
+2. After the technical publication review, change the readiness guard in a
+   separately committed preparation. Run
+   `python scripts/check_release.py --for-publication --tag 5.0.0.2`.
+3. Push only the reviewed branch without force. Require both hosted CI profiles
+   on the exact SHA; then create/push only annotated tag 5.0.0.2 and require tag CI.
+   Never move or replace 5.0.0.1 or 4.2.1.51.
+4. Compare every GitHub source-archive file against the exact Git tree and all
+   161 component hashes, with no private/cache/log material. Prepare release
+   notes from RELEASE_NOTES.md with tagged documentation links, then publish
+   only within the explicit authorization. Verify release/version metadata.
+5. Follow MIGRATION.md for a separately authorized Marketplace install/restart
+   and acceptance of real entities, automatic HEAT, original-time PI/HR, fresh
+   ACK/CS, CH/flame, continuity and a natural DHW return. Repeating a .1 restart
+   does not fix its import collision.
 
-## Failure before installation
-
-Keep 4.2.1.51 installed. A failed check blocks release publication. Do not move
-an existing tag or overwrite an already published archive. If a public release
-is found defective, restore 4.2.1.51 as the advertised latest release through a
-separately authorized metadata correction and prepare a new reviewed version;
-this does not downgrade any installation automatically. A downloaded 5.0.0.1
-requires the explicit [installation rollback](MIGRATION.md).
-
-Historical first-publication instructions remain in the
-[4.2.1.51 source](https://github.com/sochorf/hodko-sat/blob/4.2.1.51/PUBLISHING.md).
-They must not be repeated for this normal fork update.
+A failed gate blocks publication. Failure after installation uses the agreed
+rollback; no direct file copy, configuration removal or second boiler writer.
+Changing GitHub latest metadata is also a separate authorization and does not
+restore an installed system. Preparing this candidate does not repair live heat.

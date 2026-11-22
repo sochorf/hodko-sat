@@ -2,8 +2,9 @@
 
 Local maintenance fork of [Smart Autotune Thermostat](https://github.com/Alexwijn/SAT),
 combining **SAT 5.0.0** with an explicitly isolated **hodko.51 PI/HR** controller.
-Candidate version: **5.0.0.1** — local preparation only, not published or deployed.
-The current published release remains **4.2.1.51**.
+Candidate version: **5.0.0.2** — offline startup repair, not published or deployed.
+Published **5.0.0.1** has a confirmed compatibility-platform cold-start defect.
+Keep **4.2.1.51** as the verified rollback release; do not retry .1 restarts as a fix.
 
 Read [SAT5 adoption and limits](SAT5_ADOPTION.md) before reviewing this change.
 Existing entries retain their controller, version10 schema, entity identities and
@@ -13,7 +14,7 @@ SAT5 features are not automatically activated for existing PI/HR installations.
 The publication target is `sochorf/hodko-sat`. Publication and installation are
 separate operations; preparing this tree does not publish or install it.
 The existing fork publishes releases through standard Marketplace metadata.
-See the [publication procedure](PUBLISHING.md) and [5.0.0.1 release notes](RELEASE_NOTES.md).
+See the [publication procedure](PUBLISHING.md) and [5.0.0.2 release notes](RELEASE_NOTES.md).
 
 The `sat` integration domain, saved settings, entity identities and report-cache
 keys remain unchanged. Existing water limits are preserved, including a saved
@@ -36,6 +37,8 @@ The HA/transport adapters remain necessary; this is not an independent ESP32 con
 
 The portable PI/HR decision kernel and operational machine remain byte-identical
 with the published .51. The previous HA/transport adapter lives in `compat`.
+The .2 repair removes colliding HA platform imports and initializes climate
+before its dependent diagnostics, including when shadow starts first.
 Public HA setup/platforms route exactly one policy, leaving existing room targets,
 DHW ownership and saved 55 °C unchanged. Shadow remains observation only.
 
@@ -54,6 +57,9 @@ after the HA lock. Run `python scripts/check_release.py` and `python scripts/run
 environment. Tests cover original upstream behavior, startup, DHW return, lease
 expiry, CS retry/keepalive, OFF suppression, counter wrap, original-time PI/HR
 recovery, shadow isolation and the real HA Marketplace transaction code.
+Cold-start regressions run each active/shadow order in a fresh interpreter,
+without the legacy conftest imports, and require actual entities and automatic
+HEAT intent while missing command evidence still prevents boiler enable.
 
 The historical suite still tests the retired private membership migration in the
 source project. Its 24 parametrized cases are explicitly retired here and replaced
@@ -63,7 +69,7 @@ prove live HA startup, hydraulic operation or delivery of a boiler command.
 
 See [migration and rollback](MIGRATION.md), [upstream documentation](README.upstream.md)
 and [license](LICENSE). Upstream credits and license notices are retained.
-Local publication preflight is complete; `publication_ready=true` records technical
-readiness only. Hosted CI and public archive verification remain required at the
-separately authorized publication. Preparation is not permission to publish,
+This repair has `publication_ready=false`. Review and commit it before a
+separately authorized publication preflight; hosted CI and public archive
+verification remain required. Preparation is not permission to publish,
 install, restart HA or change the boiler policy.
