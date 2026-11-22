@@ -4,10 +4,11 @@ Local maintenance fork of [Smart Autotune Thermostat](https://github.com/Alexwij
 based on **4.2.1**, carrying the reviewed **hodko.51** implementation.
 Candidate version: **4.2.1.51**. SAT 5 is not part of this release.
 
-This repository is prepared locally. No fork release has been published.
-The provisional `sochorf/hodko-sat` links in the manifest are reserved for a
-separately approved publication. Publication preflight intentionally fails
-until `published_repository` is explicitly reviewed.
+The publication target is `sochorf/hodko-sat`. Publication and installation are
+separate operations; preparing this tree does not publish or install it.
+The release policy's `published_repository` field records the reviewed destination,
+not evidence that a GitHub repository or release already exists. See
+[publication procedure](PUBLISHING.md) and [first release notes](RELEASE_NOTES.md).
 
 The `sat` integration domain, saved settings, entity identities and report-cache
 keys remain unchanged. Existing water limits are preserved, including a saved

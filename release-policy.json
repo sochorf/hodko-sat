@@ -204,7 +204,7 @@
     "version": "4.2.1+hodko.51"
   },
   "previous_git_version": "4.2.1+hodko.51",
-  "published_repository": null,
+  "published_repository": "sochorf/hodko-sat",
   "regression_hashes": {
     "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "bandit.yaml": "1ecb2ef547838c6473083c7d9656e62b11b17fae0f1d7e3365e823d85e15bac2",

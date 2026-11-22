@@ -5,9 +5,9 @@ replace files in an installation and does not change the current Git owner.
 
 ## Before publication
 
-Review and commit this independent repository; run both pinned test profiles and
-the release guard. Approve the repository identity and update publication policy;
-only then separately create the public fork and a matching `4.2.1.51` tag/release.
+Follow [PUBLISHING.md](PUBLISHING.md): review and commit the publication metadata,
+verify the tested component/test hashes, then separately publish the public fork
+and a matching `4.2.1.51` tag/release from the exact reviewed commit.
 Do not use `+hodko.N` for sequential updates: the standard version comparator
 ignores build metadata. Later fork revisions use `4.2.1.52`, etc.
 
