@@ -6,8 +6,8 @@ import pytest
 from custom_components.sat.ally import shadow_adapter as module
 from custom_components.sat.ally.runtime import utc
 from custom_components.sat.ally.shadow_sensor import ShadowSensor
-from custom_components.sat.config_flow import SatFlowHandler
-from custom_components import sat
+from custom_components.sat.compat.config_flow import SatFlowHandler
+from custom_components.sat import compat as sat
 
 SETTINGS={'schema_version':1,'topic':'test/ally/events','monitor_url':'http://test.invalid/api/v2/otgw/otmonitor',
           'enabled_entity':'binary_sensor.global','members':{'0x0000000000000001':{'name':'a','zone':'A','eligible_entity':'binary_sensor.a'}},
@@ -143,7 +143,7 @@ async def test_permission_change_during_get_rejects_old_snapshot(env):
 async def test_sensor_platform_exposes_actual_ha_states(hass,env):
     import logging
     from homeassistant.helpers.entity_component import EntityComponent
-    from custom_components.sat.sensor import async_setup_entry
+    from custom_components.sat.compat.sensor import async_setup_entry
     a,clock,unsub,publish=env
     await a.start();await a.task
     hass.data.setdefault('sat',{})['shadow']={'ally_shadow':a}
@@ -268,10 +268,10 @@ async def shadow_sync(hass,monkeypatch):
     except ModuleNotFoundError as exc:
         if exc.name != 'pytest_homeassistant_custom_component': raise
         from pytest_homeassistant.common import MockConfigEntry
-    from custom_components.sat.config_flow import ShadowOptionsFlow
+    from custom_components.sat.compat.config_flow import ShadowOptionsFlow
     from custom_components.sat.ally.runtime import OperatingLimits
     from custom_components.sat.ally.kernel import Policy
-    from custom_components.sat.const import CLIMATE
+    from custom_components.sat.compat.const import CLIMATE
     shadow=MockConfigEntry(domain='sat',title='Observer',data={'mode':'ally_shadow','hodko_shadow':deepcopy(SETTINGS)},options={'unrelated':'preserved'})
     active=deepcopy(SETTINGS)
     active['policy'].update(maximum_water=60,sustained_max=7)

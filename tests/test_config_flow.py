@@ -1,5 +1,5 @@
-from custom_components.sat.const import MODE_FAKE
-from custom_components.sat.config_flow import SatFlowHandler
+from custom_components.sat.compat.const import MODE_FAKE
+from custom_components.sat.compat.config_flow import SatFlowHandler
 
 
 async def test_create_coordinator(hass):

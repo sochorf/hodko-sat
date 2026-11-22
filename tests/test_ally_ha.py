@@ -3,8 +3,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 import pytest
 from homeassistant.components.climate import HVACMode
-from custom_components.sat.const import MODE_FAKE
-from custom_components.sat.coordinator import DeviceState
+from custom_components.sat.compat.const import MODE_FAKE
+from custom_components.sat.compat.coordinator import DeviceState
 from custom_components.sat.ally import runtime
 from custom_components.sat.ally.monitor import MonitorUnavailable
 from tests.test_ally_mode import event, ts
@@ -181,11 +181,11 @@ async def test_shutdown_cannot_restart(ready):
     assert all(x.args==(DeviceState.OFF,) for x in k.async_set_heater_state.await_args_list)
 
 async def test_mqtt_publish_errors_propagate_only_in_new_mode(hass,domains,data,options,config):
-    from custom_components.sat.mqtt import SatMqttCoordinator
+    from custom_components.sat.compat.mqtt import SatMqttCoordinator
     from unittest.mock import patch
     obj=SimpleNamespace(hass=hass,_simulation=False,_hodko_strict_publish=True,
                         _get_topic_for_publishing=lambda:'test/commands')
-    with patch('custom_components.sat.mqtt.mqtt.async_publish',AsyncMock(side_effect=RuntimeError('fake broker failure'))):
+    with patch('custom_components.sat.compat.mqtt.mqtt.async_publish',AsyncMock(side_effect=RuntimeError('fake broker failure'))):
         with pytest.raises(RuntimeError):await SatMqttCoordinator._publish_command(obj,'CH=0',wait_time=0)
         obj._hodko_strict_publish=False
         await SatMqttCoordinator._publish_command(obj,'CH=0',wait_time=0)
@@ -372,7 +372,7 @@ async def test_dhw_end_with_expired_demand_does_not_restart(ready):
 
 @pytest.mark.parametrize('startup_failed',[False,True])
 async def test_mode_flow_return_requires_two_fresh_off_reports(ready,startup_failed):
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     c,r,k,clock=ready
     r.startup_ready = not startup_failed
     original=c._config_entry
@@ -395,7 +395,7 @@ async def test_mode_flow_return_requires_two_fresh_off_reports(ready,startup_fai
     with pytest.raises(ValueError): await c.async_set_hvac_mode(HVACMode.HEAT)
 
 async def test_mode_flow_invalid_settings_never_stops(ready):
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     c,r,k,clock=ready
     original=c._config_entry
     entry=SimpleNamespace(entry_id=original.entry_id,data={**original.data,'mode':'mqtt_opentherm'},options={})
@@ -407,7 +407,7 @@ async def test_mode_flow_invalid_settings_never_stops(ready):
 
 
 async def test_mode_flow_forward_backups_and_failed_stop_do_not_save(ready):
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     import json
     c,r,k,clock=ready
     original=c._config_entry
@@ -425,7 +425,7 @@ async def test_mode_flow_forward_backups_and_failed_stop_do_not_save(ready):
     assert entry.options=={'maximum_setpoint':50}
 
 async def test_reload_failure_does_not_start_second_owner(ready,hass,monkeypatch):
-    import custom_components.sat as integration
+    import custom_components.sat.compat as integration
     unload=AsyncMock(return_value=False);setup=AsyncMock()
     with monkeypatch.context() as scoped:
         scoped.setattr(integration,'async_unload_entry',unload)
@@ -484,7 +484,7 @@ async def test_close_blocks_delayed_room_and_ally_cycles(ready):
     with pytest.raises(ValueError):await c.async_set_hvac_mode(HVACMode.HEAT)
 
 async def test_real_mqtt_cs_pm_sequence_fits_shutdown_budget(ready):
-    from custom_components.sat.mqtt.opentherm import SatOpenThermMqttCoordinator
+    from custom_components.sat.compat.mqtt.opentherm import SatOpenThermMqttCoordinator
     c,r,k,clock=ready
     mqtt_coordinator=object.__new__(SatOpenThermMqttCoordinator)
     async def publish(payload):
@@ -495,7 +495,7 @@ async def test_real_mqtt_cs_pm_sequence_fits_shutdown_budget(ready):
     assert [x.args[0] for x in mqtt_coordinator._publish_command.await_args_list]==['CS=10','PM=25']
 
 async def test_mqtt_unload_removes_subscriptions_even_if_save_fails(ready):
-    from custom_components.sat.mqtt import SatMqttCoordinator
+    from custom_components.sat.compat.mqtt import SatMqttCoordinator
     c,r,k,clock=ready
     # Exercise the actual implementation on a minimal coordinator-shaped object.
     unsub=Mock();obj=SimpleNamespace(_mqtt_unsubs=[unsub],_save_data=AsyncMock(side_effect=RuntimeError('store')))
@@ -615,7 +615,7 @@ async def test_limits_runtime_defaults_and_custom_ramp(ready):
     assert candidate.attributes['ally_operating_limits']['normal_water_guard']==58
 
 async def test_limits_flow_validates_before_writes_and_preserves_backup(ready):
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     from dataclasses import asdict
     c,r,k,clock=ready
     original=c._config_entry
@@ -1004,7 +1004,7 @@ async def test_mqtt_telemetry_binding_must_match_command_gateway(ready):
     assert candidate.attributes['ally_telemetry_time_basis']=='mqtt_receipt'
 
 async def test_mqtt_mode_return_rejects_pre_stop_cached_state(ready,monkeypatch):
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     from custom_components.sat.ally import mode_flow,mqtt_monitor
     c,r,k,clock=ready
     monkeypatch.setattr(mode_flow,'monotonic',lambda:clock[0])
@@ -1040,7 +1040,7 @@ async def test_mqtt_snapshot_drives_real_loop_then_stale_data_stops(ready):
 async def test_same_pihr_mode_changes_transport_without_losing_backup(ready,monkeypatch):
     import json
     from copy import deepcopy
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     from custom_components.sat.ally import mode_flow,mqtt_monitor
     c,r,k,clock=ready
     monkeypatch.setattr(mode_flow,'monotonic',lambda:clock[0])
@@ -1069,7 +1069,7 @@ async def test_same_pihr_mode_changes_transport_without_losing_backup(ready,monk
 
 async def test_same_pihr_identical_settings_do_not_stop(ready):
     import json
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     c,r,k,clock=ready
     original=c._config_entry
     entry=SimpleNamespace(entry_id=original.entry_id,data={**original.data,'mode':'mqtt_opentherm'},options=original.options)
@@ -1143,7 +1143,7 @@ async def test_scheduler_is_ha_event_loop_callback(ready):
     assert job.job_type is HassJobType.Callback
 
 async def test_scheduled_callback_releases_marker_before_waiting_for_writer(ready, monkeypatch):
-    from custom_components.sat import climate as cm
+    from custom_components.sat.compat import climate as cm
     c, r, k, clock = ready
     callbacks = []
     monkeypatch.setattr(cm, 'async_call_later', lambda hass, delay, job: callbacks.append(job) or (lambda: None))
@@ -1160,7 +1160,7 @@ async def test_scheduled_callback_releases_marker_before_waiting_for_writer(read
         await c.hass.async_block_till_done()
 
 async def test_forced_cycle_without_existing_timer_is_immediate(ready, monkeypatch):
-    from custom_components.sat import climate as cm
+    from custom_components.sat.compat import climate as cm
     c, r, k, clock = ready
     timer = Mock()
     monkeypatch.setattr(cm, 'async_call_later', timer)
@@ -1173,7 +1173,7 @@ async def test_forced_cycle_without_existing_timer_is_immediate(ready, monkeypat
 async def test_scheduled_morning_demand_after_idle_and_dhw_off(ready, monkeypatch):
     """Morning observations: idle decision, fresh PI42/HRtrue, DHWoff, water55.2."""
     import json
-    from custom_components.sat import climate as cm
+    from custom_components.sat.compat import climate as cm
     c, r, k, clock = ready
     callbacks = []
     monkeypatch.setattr(cm, 'async_call_later', lambda hass, delay, job: callbacks.append(job) or (lambda: None))
@@ -2161,7 +2161,7 @@ async def test_keepalive_replay_91_second_historical_ack_gap(ready):
 
 
 async def test_cs_only_is_independent_of_pm25_failure(ready):
-    from custom_components.sat.mqtt.opentherm import SatOpenThermMqttCoordinator
+    from custom_components.sat.compat.mqtt.opentherm import SatOpenThermMqttCoordinator
     c,r,k,clock,values=await confirmed_keepalive(ready)
     obj=object.__new__(SatOpenThermMqttCoordinator)
     async def publish(payload):
@@ -2588,7 +2588,7 @@ async def test_historical_1624_cycle_has_earlier_refresh_reserve(ready):
 
 @pytest.mark.parametrize('maximum,margin,back_max', [(55,10,50),(60,5,55),(60,10,55)])
 async def test_unified_water_and_correction_form_is_atomic_and_reversible(ready,maximum,margin,back_max):
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     from dataclasses import asdict
     from copy import deepcopy
     c,r,k,clock=ready
@@ -2638,7 +2638,7 @@ async def test_unified_water_and_correction_form_is_atomic_and_reversible(ready,
     {'sustained_rise':2},{'sustained_max':11},{'sustained_pi_age':float('inf')},
     {'sustained_gap':91},{'sustained_start':True}])
 async def test_unified_limits_invalid_form_never_stops_heating(ready,change):
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     from dataclasses import asdict
     c,r,k,clock=ready
     entry=SimpleNamespace(entry_id=c._config_entry.entry_id,data={**c._config_entry.data,'mode':'mqtt_opentherm'},options=dict(c._config_entry.options))
@@ -2651,7 +2651,7 @@ async def test_unified_limits_invalid_form_never_stops_heating(ready,change):
 
 async def test_expanded_form_preserves_saved_55_and_margin_without_writes(ready):
     from copy import deepcopy
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     c,r,k,clock=ready
     options=deepcopy(dict(c._config_entry.options))
     options['maximum_setpoint']=55
@@ -2709,12 +2709,12 @@ async def test_60_dhw_exception_retains_original_deadlines(ready,margin):
 
 @pytest.mark.parametrize('maximum', [55,60])
 async def test_coordinator_sends_saved_maximum_only_to_otgw_sh(ready,maximum):
-    from custom_components.sat.mqtt.opentherm import SatOpenThermMqttCoordinator
+    from custom_components.sat.compat.mqtt.opentherm import SatOpenThermMqttCoordinator
     c,r,k,clock=ready
     obj=object.__new__(SatOpenThermMqttCoordinator)
     obj._options={'maximum_setpoint':maximum};obj._heating_system='radiators'
     obj._publish_command=AsyncMock()
-    from custom_components.sat.coordinator import SatDataUpdateCoordinator
+    from custom_components.sat.compat.coordinator import SatDataUpdateCoordinator
     await SatDataUpdateCoordinator.async_added_to_hass(obj)
     obj._publish_command.assert_awaited_once_with(f'SH={float(maximum)}')
 
@@ -2740,7 +2740,7 @@ async def test_active_request_and_ramp_respect_selected_cap(ready,maximum):
 # confirmed OFF/CS10 while waiting for MM and the 180s minimum OFF time.
 @pytest.mark.parametrize('path', ['runtime', 'shutdown'])
 async def test_pihr_safe_stop_never_queries_pm25(ready,path):
-    from custom_components.sat.mqtt.opentherm import SatOpenThermMqttCoordinator
+    from custom_components.sat.compat.mqtt.opentherm import SatOpenThermMqttCoordinator
     c,r,k,clock=ready
     obj=object.__new__(SatOpenThermMqttCoordinator)
     async def publish(payload):
@@ -2885,7 +2885,7 @@ async def test_late_cs_failed_retry_still_expires_original_lease(ready,monkeypat
 
 
 async def test_due_cs_tick_bypasses_debounce_and_cancels_old_job(ready,monkeypatch):
-    from custom_components.sat import climate as cm
+    from custom_components.sat.compat import climate as cm
     c,r,k,clock,values=await confirmed_keepalive(ready)
     c.schedule_control_heating_loop=type(c).schedule_control_heating_loop.__get__(c)
     jobs=[];cancel=Mock()
@@ -3145,7 +3145,7 @@ async def test_unknown_demand_preserves_dhw_context_but_never_forces_ch(ready):
 
 
 async def test_mixing_form_exposes_default_and_preserves_saved_limits(ready):
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     c,r,k,clock=ready
     entry=SimpleNamespace(entry_id=c._config_entry.entry_id,data={**c._config_entry.data,'mode':'mqtt_opentherm'},options=dict(c._config_entry.options))
     flow=SatOptionsFlowHandler(entry);flow.hass=c.hass
@@ -3237,7 +3237,7 @@ async def test_transport_change_and_rollback_keep_55_limits_and_owner(ready,monk
     import json
     from copy import deepcopy
     from dataclasses import asdict
-    from custom_components.sat.config_flow import SatOptionsFlowHandler
+    from custom_components.sat.compat.config_flow import SatOptionsFlowHandler
     from custom_components.sat.ally import mode_flow,mqtt_monitor
     c,r,k,clock=ready
     use_55_degree_test_limits(ready)

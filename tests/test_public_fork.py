@@ -15,7 +15,7 @@ except ModuleNotFoundError as exc:
         raise
     from pytest_homeassistant.common import MockConfigEntry
 
-from custom_components import sat
+from custom_components.sat import compat as sat
 from custom_components.sat.ally import shadow_adapter
 
 ROOT = Path(__file__).resolve().parents[1]

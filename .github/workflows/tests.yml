@@ -28,6 +28,7 @@ jobs:
             uv pip sync hodko/requirements-ha-2026.11.lock --python .venv/bin/python --require-hashes
             uv pip install --python .venv/bin/python --require-hashes --no-deps -r hodko/requirements-ha112.txt
           fi
+      - run: uv pip install --python .venv/bin/python --require-hashes --no-deps -r hodko/requirements-sat5.lock
       - run: .venv/bin/python scripts/check_release.py
       - name: Verify release tag and repository identity
         if: startsWith(github.ref, 'refs/tags/')

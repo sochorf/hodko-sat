@@ -10,7 +10,7 @@ import voluptuous as vol
 from homeassistant.components.climate import HVACMode
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from ..const import DOMAIN, CLIMATE, CONF_MAXIMUM_SETPOINT
+from ..compat.const import DOMAIN, CLIMATE, CONF_MAXIMUM_SETPOINT
 from .runtime import Runtime, OperatingLimits
 from dataclasses import asdict
 from .shadow_adapter import validate

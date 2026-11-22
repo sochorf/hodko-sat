@@ -26,8 +26,8 @@ from homeassistant.components.update.entity import _version_is_newer
 
 ROOT = Path(__file__).resolve().parents[1]
 DOMAIN = "sat"
-FIRST = "4.2.1.51"
-NEXT = "4.2.1.52"  # Synthetic local fixture only; never published.
+FIRST = "5.0.0.1"
+NEXT = "5.0.0.2"  # Synthetic local fixture only; never published.
 COMPONENT = ROOT / "custom_components" / DOMAIN
 
 
@@ -247,7 +247,7 @@ async def test_interrupted_transaction_restores_previous_files_on_recovery(marke
 @pytest.mark.parametrize("old,new,expected", [
     ("4.2.1+hodko.51", "4.2.1+hodko.52", False),
     ("4.2.1+hodko.51", FIRST, True), (FIRST, NEXT, True),
-    (NEXT, "4.2.2.1", True), (FIRST, FIRST, False), (NEXT, FIRST, False),
+    (NEXT, "5.0.1.1", True), (FIRST, FIRST, False), (NEXT, FIRST, False),
 ])
 def test_version_order(old, new, expected):
     assert is_newer_version(new, old) is expected
@@ -262,8 +262,8 @@ def test_release_integrity_and_unpublished_guard():
     module.check(ROOT, tag=FIRST)
     with pytest.raises(ValueError):
         module.check(ROOT, tag=NEXT)
-    if json.loads((ROOT / "release-policy.json").read_text())["published_repository"] is None:
-        with pytest.raises(ValueError, match="Public owner"):
+    if not json.loads((ROOT / "release-policy.json").read_text()).get("publication_ready"):
+        with pytest.raises(ValueError, match="Publication is not approved"):
             module.check(ROOT, publication=True)
     else:
         module.check(ROOT, publication=True)
@@ -292,3 +292,36 @@ async def test_unsupported_ha_version_is_refused_before_write(market, monkeypatc
     assert err.value.translation_key == "requires_newer_home_assistant"
     download.assert_not_called()
     assert not Path(r.content.path.local).exists()
+
+
+async def test_downgrade_restores_actual_release51_files(market, monkeypatch):
+    """Real Marketplace transaction against the pinned old Git tree, not relabeling."""
+    import io
+    import subprocess
+    import tarfile
+
+    reference = 'd96348f2a3419baf841c3ce5ddb4bfcb6213ab78'
+    archive = subprocess.check_output(['git','archive',reference,'custom_components/sat'],cwd=ROOT)
+    prefix = 'custom_components/sat/'
+    original = {}
+    with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
+        for member in tar.getmembers():
+            if member.isfile():
+                assert member.name.startswith(prefix)
+                name = member.name[len(prefix):]
+                assert '..' not in Path(name).parts
+                original[name] = tar.extractfile(member).read()
+    assert len(original) == 80
+    r = repository(market,monkeypatch)
+    await install(r,FIRST)
+    path = Path(r.content.path.local)
+    assert (path/'compat/climate.py').is_file()
+
+    async def download_old(version):
+        assert version == '4.2.1.51'
+        for name, contents in original.items():
+            p=path/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(contents)
+    monkeypatch.setattr(r,'_async_download_version',download_old)
+    await install(r,'4.2.1.51')
+    assert hashes(path) == {k:hashlib.sha256(v).hexdigest() for k,v in original.items()}
+    assert not (path/'compat').exists()

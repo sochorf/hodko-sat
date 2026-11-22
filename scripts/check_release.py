@@ -39,7 +39,9 @@ def check(root, *, publication=False, tag=None):
     before = policy['baseline_component_hashes']
     require(set(before) - set(actual) == set(policy['removed_local_files']), 'Removal inventory changed')
     require(sorted(k for k in actual if actual[k] != before.get(k)) == policy['changed_component_files'], 'Unexpected .51 delta')
-    require(policy['changed_component_files'] == ['__init__.py', 'ally/mode_flow.py', 'manifest.json'], 'Unreviewed control-source delta')
+    require(policy['upstream_commit'] == 'a23f3d6a0150986d769ebd5b484d5c2209aae30d', 'Unreviewed upstream base')
+    for name, digest in policy['preserved_ally_core'].items():
+        require(actual.get(name) == digest, 'Changed preserved PI/HR core: ' + name)
     require(inventory(root / 'tests') == policy['regression_hashes'], 'Changed/missing/extra regression files')
     require(json.loads((root / 'hacs.json').read_text())['homeassistant'] == '2026.11.2', 'Minimum HA changed')
     require((root / 'LICENSE').is_file() and (component / 'LICENSE').is_file(), 'License missing')
@@ -58,6 +60,7 @@ def check(root, *, publication=False, tag=None):
         if name.startswith('custom_components/'):
             require(b'ingest.de.sentry.io' not in text, 'Upstream Sentry endpoint')
     if publication:
+        require(policy.get('publication_ready') is True, 'Publication is not approved for this offline candidate')
         repo = policy['published_repository']
         require(isinstance(repo, str) and re.fullmatch(r'[A-Za-z0-9-]+/hodko-sat', repo), 'Public owner/repository not approved')
         require(manifest['documentation'] == 'https://github.com/' + repo, 'Wrong documentation URL')

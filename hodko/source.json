@@ -3,11 +3,13 @@
   "tag": "4.2.1",
   "commit": "6167c0f598d37d08db1bd0ded1008772522c45c9",
   "branch": "codex/hodko-sat",
-  "candidate_version": "4.2.1.51",
+  "candidate_version": "5.0.0.1",
   "python": "3.14.8",
   "homeassistant": "2026.10.2",
   "pytest_homeassistant_custom_component": "0.13.373",
   "lock_tool": "uv==0.9.4",
   "status": "offline-candidate-not-for-deployment",
-  "ally_kernel_sha256": "7d718449abb5deb1477e57bdf79b93bf3bd3ed747e6d0c24f44d83bdc5a3ed47"
+  "ally_kernel_sha256": "7d718449abb5deb1477e57bdf79b93bf3bd3ed747e6d0c24f44d83bdc5a3ed47",
+  "upstream_sat5_commit": "a23f3d6a0150986d769ebd5b484d5c2209aae30d",
+  "compatibility_release_commit": "d96348f2a3419baf841c3ce5ddb4bfcb6213ab78"
 }

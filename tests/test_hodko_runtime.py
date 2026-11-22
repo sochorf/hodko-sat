@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock
 import pytest
 import pytest_socket
 from homeassistant.components.climate import HVACMode
-from custom_components.sat.const import MODE_FAKE, MINIMUM_SETPOINT
-from custom_components.sat.coordinator import DeviceState
+from custom_components.sat.compat.const import MODE_FAKE, MINIMUM_SETPOINT
+from custom_components.sat.compat.coordinator import DeviceState
 
 PARAMETERS = [([], {'mode': MODE_FAKE, 'minimum_setpoint': 41, 'maximum_setpoint': 50}, {}, {})]
 
@@ -51,9 +51,9 @@ for family in (socket.AF_INET, socket.AF_INET6):
 
 @pytest.fixture
 async def startup_pid(hass, climate, coordinator, monkeypatch):
-    from custom_components.sat import pid as pid_module
+    from custom_components.sat.compat import pid as pid_module
     from homeassistant.core import State
-    from custom_components.sat import climate as climate_module
+    from custom_components.sat.compat import climate as climate_module
     c = climate
     c.schedule_control_heating_loop = lambda *a, **k: None
     values = dict(inside=None, outside=7.9, target=22.0, water=52.9)

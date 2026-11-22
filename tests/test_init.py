@@ -7,8 +7,8 @@ except ModuleNotFoundError as exc:
     if exc.name != 'pytest_homeassistant_custom_component': raise
     from pytest_homeassistant.common import MockConfigEntry
 
-from custom_components.sat import async_reload_entry
-from custom_components.sat.const import DOMAIN
+from custom_components.sat.compat import async_reload_entry
+from custom_components.sat.compat.const import DOMAIN
 from tests.const import DEFAULT_USER_DATA
 
 

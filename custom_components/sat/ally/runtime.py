@@ -33,8 +33,8 @@ from .machine import (OperationalMachine, Command, CS_REFRESH_INTERVAL,
                       STARTUP_RETRY_INTERVAL, STARTUP_REARM_INTERVAL,
                       HEATING_SEASON_ENTITY, PASSIVE_WATER_STOPS)
 from .kernel import Policy, MAXIMUM_ALLOWED_WATER, CORRECTION_RANGES
-from ..coordinator import DeviceState
-from ..const import MINIMUM_SETPOINT
+from ..compat.coordinator import DeviceState
+from ..compat.const import MINIMUM_SETPOINT
 
 
 _LOGGER = logging.getLogger(__name__)

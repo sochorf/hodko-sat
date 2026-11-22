@@ -1,3 +1,19 @@
+# Candidate 5.0.0.1 — publication not authorized
+
+This task prepares local changes only. `release-policy.json` has
+`publication_ready=false`; publication/tag validation must fail until a separate
+review explicitly opens that gate. Do not create a tag, release or push now.
+
+Before any later authorized publication: commit the entire mixed code/test/docs
+change; run both pinned test profiles and release inventory checks on the exact
+commit; review the 5.0.0.1 notes and rollback. Publish through the existing
+`sochorf/hodko-sat` repository, never overwrite 4.2.1.51. Verify hosted branch/tag CI
+and all source-archive hashes. Publishing and installing remain separate actions.
+SAT5 adoption does not require another Marketplace owner repair.
+
+The following is the retained historical first-release procedure, **not the
+instructions for this candidate**.
+
 # First publication — 4.2.1.51
 
 Destination: **sochorf/hodko-sat**, a public fork of Alexwijn/SAT.

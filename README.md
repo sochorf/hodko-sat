@@ -1,8 +1,14 @@
 # Hodko SAT
 
 Local maintenance fork of [Smart Autotune Thermostat](https://github.com/Alexwijn/SAT),
-based on **4.2.1**, carrying the reviewed **hodko.51** implementation.
-Candidate version: **4.2.1.51**. SAT 5 is not part of this release.
+combining **SAT 5.0.0** with an explicitly isolated **hodko.51 PI/HR** controller.
+Candidate version: **5.0.0.1** — local preparation only, not published or deployed.
+The current published release remains **4.2.1.51**.
+
+Read [SAT5 adoption and limits](SAT5_ADOPTION.md) before reviewing this change.
+Existing entries retain their controller, version10 schema, entity identities and
+original-time cache. Only new native version13 entries use the upstream PID/PWM.
+SAT5 features are not automatically activated for existing PI/HR installations.
 
 The publication target is `sochorf/hodko-sat`. Publication and installation are
 separate operations; preparing this tree does not publish or install it.
@@ -27,26 +33,25 @@ the active ramp**. It writes no boiler commands. Its independent state, history,
 hysteresis and correction can differ from the active SAT. It is not a second owner.
 The HA/transport adapters remain necessary; this is not an independent ESP32 controller.
 
-## Differences from the private .51 package
+## Package boundaries
 
-- Five inactive local pilot/replay/map files are excluded; runtime modules remain.
-- Completed, house-specific TV2/WC membership migrations are retired. Saved members
-  and markers are preserved; this release will not add devices to an unrelated home.
-  Complete these migrations on .51 before switching. Regressions check 13 saved
-  members, explicit removals, limits and both SAT/shadow storage forms.
-- The legacy error-reporting option no longer initializes upstream Sentry. It logs
-  a local warning when enabled. No replacement external telemetry is installed.
-- Version/owner/documentation metadata, offline tests and release checks are added.
+The portable PI/HR decision kernel and operational machine remain byte-identical
+with the published .51. The previous HA/transport adapter lives in `compat`.
+Public HA setup/platforms route exactly one policy, leaving existing room targets,
+DHW ownership and saved 55 °C unchanged. Shadow remains observation only.
 
-The decision kernel, operating machine, runtime, HTTP/MQTT transports, command
-timings and safeguards are **byte-identical to .51**. `release-policy.json`
-records the exact baseline and the three reviewed changed component files.
+The native SAT5 path includes final CS limiting, missing-return fallback and MQTT
+error propagation fixes. Its other policy semantics remain distinct from Hodko.
+Do not enable it for an existing boiler without a separate migration acceptance.
+No upstream Sentry reporting is enabled. See the detailed source/provenance and
+maintenance tradeoff in [SAT5_ADOPTION.md](SAT5_ADOPTION.md).
 
 ## Validation
 
 Use Python 3.14.8. CI installs hash-pinned dependencies and runs socket-disabled
 tests against HA 2026.10.2 (historical regression) and 2026.11.2 (supported minimum).
-Run `python scripts/check_release.py` and `python scripts/run_tests.py` in that
+Install the additional test-only `hodko/requirements-sat5.lock` with hash checking
+after the HA lock. Run `python scripts/check_release.py` and `python scripts/run_tests.py` in that
 environment. Tests cover original upstream behavior, startup, DHW return, lease
 expiry, CS retry/keepalive, OFF suppression, counter wrap, original-time PI/HR
 recovery, shadow isolation and the real HA Marketplace transaction code.
@@ -59,4 +64,5 @@ prove live HA startup, hydraulic operation or delivery of a boiler command.
 
 See [migration and rollback](MIGRATION.md), [upstream documentation](README.upstream.md)
 and [license](LICENSE). Upstream credits and license notices are retained.
-Future SAT 5 adoption is a separate adapter/regression project, not an automatic merge.
+Publication is gated off for this candidate. Commit preparation is not permission
+to publish, install, restart HA or change the boiler policy.

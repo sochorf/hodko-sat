@@ -1,3 +1,41 @@
+# Candidate 5.0.0.1: subsequent fork update and return
+
+Preparation only: no live operation is authorized here. Existing `sat` ownership
+stays with `sochorf/hodko-sat` in Marketplace. Do not deploy this component from
+ha-config, repeat the owner repair, uninstall the integration or create new entries.
+
+1. After a separately approved publication, take and verify a fresh full backup
+   of HA, installed 4.2.1.51 files, entries/registries, original report cache and
+   Marketplace state. Record active/shadow options and disabled/ignored entries.
+2. Verify the exact candidate release/CI/archive before the normal Marketplace
+   update. Keep season/global permissions, 55 °C, room targets, TUV and Spook as-is.
+   Schedule the one HA restart separately. No Z2M or OTGW restart is required.
+3. After restart verify manifest 5.0.0.1 and full hashes. Existing entries should
+   still be version10, same identities, same 13 saved heads and original PI/HR times.
+   Automatic HEAT, progressing decisions, startup OFF/CS10 confirmation, modulation,
+   CH ON/CS ACK and real CH/flame must be checked separately. Successful publish is
+   not ACK. No native room PID/PWM or new water-heater entity should be running for
+   these entries. Verify no new OFF repetitions, NoACK or counter errors.
+4. Observe a natural TUV cycle and bounded recovery/mixing without forcing it.
+   Record absence of a cycle as untested. Compare shadow before ramp using the same
+   report times/history; equal final CS is not the sole test. Keep max request55;
+   hotter actual residual DHW water is a separate quantity.
+
+Return: use Marketplace's normal reinstall/version selection for **4.2.1.51**,
+verify its exact 80-file inventory, then the agreed HA restart and startup checks.
+The candidate deliberately leaves existing version10 entries, identifiers and
+cache schema unchanged. Offline tests restore the genuine old file tree and verify
+unchanged entry/registry inputs. They do not prove a physical/live restore.
+If configuration/registries were changed outside that path, use the verified
+backup instead of inventing a downgrade. Newly created native version13 entries
+are not readable by .51 and require their own recorded rollback/backup.
+
+Do not leave mixed old/new files; on partial install failure inspect Marketplace's
+rollback result. HA should retain one boiler writer. Do not bypass safety by
+repeated manual HEAT. The original first-install notes below are historical.
+
+---
+
 # Migration and rollback — preparation only
 
 No live operation is authorized by this document. This local candidate does not

@@ -3,11 +3,11 @@ from copy import deepcopy
 import json
 from types import SimpleNamespace
 import pytest
-from custom_components.sat.coordinator import DeviceState
+from custom_components.sat.compat.coordinator import DeviceState
 from custom_components.sat.ally.shadow import Observer
 from tests.test_ally_ha import SETTINGS, clock_and_mqtt, ready
 from tests.test_ally_mode import event
-from custom_components.sat.const import MODE_FAKE
+from custom_components.sat.compat.const import MODE_FAKE
 
 CONFIG = deepcopy(SETTINGS)
 CONFIG['policy'].update(maximum_water=55, water_cold=55)

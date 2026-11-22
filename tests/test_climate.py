@@ -11,9 +11,9 @@ except ModuleNotFoundError as exc:
     if exc.name != 'pytest_homeassistant_custom_component': raise
     from pytest_homeassistant.common import MockConfigEntry
 
-from custom_components.sat.climate import SatClimate
-from custom_components.sat.const import *
-from custom_components.sat.fake import SatFakeCoordinator
+from custom_components.sat.compat.climate import SatClimate
+from custom_components.sat.compat.const import *
+from custom_components.sat.compat.fake import SatFakeCoordinator
 
 
 @pytest.mark.parametrize(*[

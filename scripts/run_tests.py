@@ -11,10 +11,13 @@ import tempfile
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('checkout', nargs='?', type=Path, default=Path(__file__).resolve().parents[1])
-parser.add_argument('--suite', choices=['all', 'upstream', 'regression', 'contract'], default='all')
+parser.add_argument('--suite', choices=['all', 'upstream', 'regression', 'contract', 'sat5'], default='all')
 parser.add_argument('--profile', choices=['baseline', 'ha-2026.11', 'ha-2026.11.2'], default='ha-2026.11.2')
 parser.add_argument('--ha-overlay', type=Path, help='Optional unpacked, pinned HA wheel for offline testing')
+parser.add_argument('--test-extras', type=Path, help='Optional offline test-only dependency overlay')
 args = parser.parse_args()
+if args.test_extras:
+    args.test_extras = args.test_extras.resolve()
 if args.ha_overlay:
     args.ha_overlay = args.ha_overlay.resolve()
     sys.path.insert(0, str(args.ha_overlay))
@@ -37,12 +40,14 @@ with tempfile.TemporaryDirectory(prefix='sat-offline-test-') as tmp:
     home = Path(tmp) / 'home'
     home.mkdir()
     env = {k: os.environ[k] for k in ['PATH', 'SYSTEMROOT', 'LANG', 'TMPDIR'] if k in os.environ}
-    env.update(HOME=str(home), SAT_SOURCE_DIR=str(base), PYTHONDONTWRITEBYTECODE='1', PYTHONPATH=os.pathsep.join([*([str(args.ha_overlay)] if args.ha_overlay else []), str(root / 'tests')]))
+    env.update(HOME=str(home), SAT_SOURCE_DIR=str(base), PYTHONDONTWRITEBYTECODE='1', PYTHONPATH=os.pathsep.join([*([str(args.ha_overlay)] if args.ha_overlay else []), *([str(args.test_extras)] if args.test_extras else []), str(root / 'tests')]))
     tests = ['tests']
     if args.suite == 'upstream':
         tests = ['tests/test_climate.py', 'tests/test_init.py', 'tests/test_config_flow.py', 'tests/test_manufacturer.py']
+    elif args.suite == 'sat5':
+        tests = ['tests/upstream']
     elif args.suite == 'contract':
-        tests = ['tests/test_sat_core_contract.py', 'tests/test_sat_operational_machine.py', 'tests/test_ally_boundaries.py']
+        tests = ['tests/test_sat_core_contract.py', 'tests/test_sat_operational_machine.py', 'tests/test_ally_boundaries.py', 'tests/test_sat5_handoff.py', 'tests/test_sat5_services.py']
     elif args.suite == 'regression':
         tests = ['tests/test_sat_shutdown.py', 'tests/test_sat_flame_health.py', 'tests/test_hodko_runtime.py', 'tests/test_ally_mode.py', 'tests/test_ally_ha.py', 'tests/test_ally_kernel.py', 'tests/test_ally_shadow.py', 'tests/test_shadow_adapter.py', 'tests/test_otgw_monitor.py', 'tests/test_mqtt_monitor.py', 'tests/test_sat_core_contract.py', 'tests/test_sat_operational_machine.py', 'tests/test_ally_boundaries.py']
     cmd = [sys.executable, '-m', 'pytest', '-q', '--disable-socket', '--allow-unix-socket', '--timeout=30',

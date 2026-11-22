@@ -1,3 +1,31 @@
+# Hodko SAT 5.0.0.1 — unpublished candidate
+
+Adopts the pinned upstream SAT 5.0.0 code while routing existing version10 and
+Hodko PI/HR/shadow entries to the preserved .51 adapter. Original PI/HR times,
+permissions, command confirmation, keepalive/retry, startup/HEAT recovery and
+DHW recovery remain. The portable policy and operational machine are unchanged.
+No automatic switch to native room PID/PWM, target synchronization or DHW control.
+
+New native SAT5 configurations receive final CS limiting, a bounded missing-return
+fallback and MQTT publication error propagation. Native policy remains distinct
+and is not accepted as a replacement for this house's PI/HR policy.
+
+Added migration/identity, ownership, shared-service and actual .51 downgrade tests;
+expanded the suite with upstream SAT5 tests. Minimum supported HA remains 2026.11.2.
+Offline results: **1,493 passed + 53 subtests** on HA2026.11.2 and
+**1,475 passed + 53 subtests** on the historical HA2026.10.2 profile, Python3.14.8.
+Each has one pre-existing skip of a duplicate-source check (the standalone fork
+has only one core source). Fixed independent hashes and historical golden traces
+remain checked. No failures or errors. Warnings are deprecations in test/dependency
+APIs; hosted CI has not run. Publication is gated off.
+
+See [adoption details](SAT5_ADOPTION.md) and [controlled update/return](MIGRATION.md).
+A successful offline test is not proof of live boiler/hydraulic behavior.
+
+---
+
+## Historical first release
+
 # Hodko SAT 4.2.1.51
 
 First maintenance-fork release, based on upstream SAT 4.2.1 and the reviewed
