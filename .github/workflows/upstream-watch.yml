@@ -1,0 +1,48 @@
+name: Watch upstream SAT changes
+
+on:
+  schedule:
+    - cron: '15 9 * * *'
+      timezone: Europe/Prague
+  workflow_dispatch:
+    inputs:
+      create_issues:
+        description: Create a review issue (also requires SAT_UPSTREAM_ISSUES_ENABLED)
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sat-upstream-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    if: >-
+      github.repository == 'sochorf/hodko-sat' &&
+      github.ref == 'refs/heads/codex/hodko-sat'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Offline watcher regressions
+        run: python3 scripts/test_watch_upstream.py
+      - name: Check releases, development and issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SAT_UPSTREAM_ISSUES_ENABLED: ${{ vars.SAT_UPSTREAM_ISSUES_ENABLED }}
+          WATCH_APPLY: ${{ vars.SAT_UPSTREAM_ISSUES_ENABLED == 'true' && (github.event_name == 'schedule' || inputs.create_issues) }}
+        run: |
+          if [ "$WATCH_APPLY" = "true" ]; then
+            python3 scripts/watch_upstream.py --apply
+          else
+            python3 scripts/watch_upstream.py
+          fi

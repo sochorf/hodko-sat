@@ -41,3 +41,11 @@ jobs:
         with:
           name: sat-${{ matrix.profile }}
           path: hodko-results-${{ matrix.profile }}-all.xml
+
+  upstream-watch-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: python3 scripts/test_watch_upstream.py

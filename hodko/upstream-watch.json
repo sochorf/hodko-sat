@@ -1,0 +1,22 @@
+{
+  "target": "sochorf/hodko-sat",
+  "target_branch": "codex/hodko-sat",
+  "reviewed_upstream_commit": "a23f3d6a0150986d769ebd5b484d5c2209aae30d",
+  "release_since": "2026-11-21T12:42:41Z",
+  "initial_state": {
+    "schema": 1,
+    "upstream": "Alexwijn/SAT",
+    "branch": "develop",
+    "head": "ba515c8a90dd63f884fe19bafa8519b2c07c3f15",
+    "checked_at": "2026-11-23T00:27:00.256185Z",
+    "releases": {
+      "453684184": "2fd55fc2782df181bda526a122eb128ece9c17ef95ec123f2005d9398db302b4"
+    },
+    "items": {
+      "206": "36bc05785e60fdc3c3ac7d5b1befdd15a6b87c1e4349f7ddf6b702b76c33eb22",
+      "207": "f670f2b93f06482ab80d1b7ea1abaad6204b3830a4efee43a04e043a2c3bdc57",
+      "205": "e79e953c2ba5d0f16c3abc9aaa75923a5f7f4b250aefba7e3a2455aa9470e152",
+      "204": "65934413dfba4f3ef8ab07be8968763952dc015c3463ce56d3ba92f76e159aaa"
+    }
+  }
+}

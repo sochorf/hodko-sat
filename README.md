@@ -74,3 +74,11 @@ Local review is complete and `publication_ready=true`. The repair commit passed
 both hosted CI profiles; the final publication commit and tag require their own
 CI and public archive verification before release acceptance. Preparation is not
 permission to publish, install, restart HA or change the boiler policy.
+
+
+## Upstream maintenance watch
+
+A separate GitHub Actions watcher is prepared for daily upstream releases,
+development and issue/PR changes. It defaults to read-only preview and can
+create deduplicated review issues after explicit activation. It cannot merge,
+publish or change heating. See [setup, verification and rollback](UPSTREAM_WATCH.md).
